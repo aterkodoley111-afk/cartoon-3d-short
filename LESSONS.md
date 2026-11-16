@@ -43,6 +43,19 @@ SKILL.md, so the next video starts from a better place. SKILL.md holds the disti
 - Callback ending: "weighed as much as eleven buses ... now helps to run them": the eleven buses popping in on the
   number, then one bus at sunset.
 
+### After delivery: user feedback (flicker, loud SFX, blue shadow) -> v2
+- User saw flicker. `tools/flicker.py` located it: museum floor behind the glass case (lens blur + depth-less glass,
+  4.36 % strong-flicker pixels -> 0.86 % with the glass removed), road/pavement texture crawl in the street shots
+  (3.34 % -> 1.93 % with speckles removed, bigger slabs), per-frame-flip impact shakes (now damped, 4-frame period),
+  a tanker crossing at 14 m/s (judder; now 7 m/s). Two fixes did NOT help and were measured before the full re-render:
+  shadow-map locking alone (museum unchanged) and MSAA 4 (bit-identical output in swiftshader).
+- User found SFX too loud: the jet hose hiss was only 2.6 dB under the voice, flood gurgle 5 dB, clank/spurt 6 dB.
+  Fix: per-event gains down 5-9 dB, hisses low-passed, and `sfx_ceiling()` (>= 9 dB under voice everywhere).
+- The blue road at the ending was the bus's long shadow at a 12-degree backlit sun, painted with the golden preset's
+  violet shade next to bright orange road. Fix for backlit sunsets: per-shot warm dusky shade (0.36, 0.24, 0.26).
+- Full re-render required (~3.6 h). Lesson: run tools/flicker.py on a range render of the busiest shots of each set
+  BEFORE the first full render.
+
 ---
 
 ## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16

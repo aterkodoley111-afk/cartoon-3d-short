@@ -65,7 +65,7 @@ const Inner: React.FC<{ id: number; kit: Kit }> = ({ id, kit }) => {
   const lensOn = on.lens && dofAt(f).cInf > 0.05, bloomOn = on.bloom && SHOTS[id - 1].light === "golden";
   const post = useMemo(() => (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <EffectComposer multisampling={2}>{[
+    <EffectComposer multisampling={4}>{[
       on.ink ? <primitive key="ink" object={fx.ink} dispose={null} /> : null,
       lensOn && on.pre ? <primitive key="pre" object={fx.lens.pre} dispose={null} /> : null,
       lensOn ? <primitive key="lens" object={fx.lens.main} dispose={null} /> : null,

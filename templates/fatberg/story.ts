@@ -96,7 +96,7 @@ export const busIn = (i: number) => Ws(58) - 0.1 + i * ((Ws(60) + 0.25 - Ws(58))
 /** the eight workers walk toward the lens */
 export const crewX = (t: number) => -126.5 - 1.2 * (t - Ws(74));
 /** tankers passing in the "nine weeks" time-lapse (x of the front) */
-export const tankerX = (t: number, k: number) => -140 + 14 * (t - Ws(93)) - k * 400;
+export const tankerX = (t: number, k: number) => -131.5 + 7 * (t - Ws(93)) - k * 400;
 /** the ending bus (golden): -x traffic, toward the camera */
 export const busEndX = (t: number) => 2 - 9.5 * (t - Ws(170));
 /** the shovel strike: 0 raised .. 1 struck (on "concrete") */
@@ -197,12 +197,13 @@ const CAMS: Record<number, Key[]> = {
 
 // impact kicks: the plug looming, "tonnes", the manhole lid, the shovel's clang, the soap pop, the seal, the fly
 export const LID_T = Ws(71) - 0.04, SEAL_T = Ws(144) - 0.1, SOAP_T = Ws(106) - 0.05;
-const KICKS: [number, number][] = [[Ws(54) - 0.04, 0.8], [LID_T, 0.7], [STRIKE_T, 1.3], [SOAP_T, 0.4], [SEAL_T, 0.7], [Ws(36) - 0.03, 0.4]];
+const KICKS: [number, number][] = [[Ws(54) - 0.04, 0.6], [LID_T, 0.5], [STRIKE_T, 0.8], [SOAP_T, 0.3], [SEAL_T, 0.5], [Ws(36) - 0.03, 0.3]];
+/** impact shake: a damped oscillation with a 4-frame period over 10 frames (a sign flip every frame strobes) */
 export const kickAt = (t: number) => {
   let a = 0;
   for (const [t0, g] of KICKS) {
-    const n = Math.floor((t - t0) * FPS + 1e-6);
-    if (n >= 0 && n < 7) a += g * (n % 2 ? -1 : 1) * (1 - n / 7) ** 1.5;
+    const x = (t - t0) * FPS;
+    if (x >= 0 && x < 10) a += g * Math.cos((x * Math.PI) / 2) * (1 - x / 10) ** 1.5;
   }
   return a;
 };

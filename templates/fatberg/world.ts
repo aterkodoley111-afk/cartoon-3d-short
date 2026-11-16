@@ -14,7 +14,7 @@ import { Pool, Actor, Fx, stage } from "./cast";
 import {
   FPS, SHOTS, camAt, V3, smooth, clamp01, ShotDef, setAt, SetName, Ws, SEW_Y, SEW_R, FLOOR_Y, FACE_X, END_X, MH_CAM, MH_FLOOD,
   LANE_OUT, LANE_IN, KITCHEN, BATH, OFFICE, MUSEUM, LAB, TABLE_H, CASE_AT, crawlX, crawlDrop, floodY, BUS_L, busIn, tankerX, busEndX,
-  LID_T, TUB_AT3, FLIES_AT, W,
+  LID_T, TUB_AT3, FLIES_AT, W, SETUPS,
 } from "./story";
 
 export const loadKit = () => Promise.resolve({} as Kit); // no external models: everything is built here
@@ -24,13 +24,12 @@ const hash = (i: number, s = 0) => { const v = Math.sin(i * 127.1 + s * 311.7) *
 const asphaltTex = () => ctex("asphalt", 512, 512, (g, r) => {
   g.fillStyle = "#6e6b66"; g.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 26; i++) { const x = r() * 512, y = r() * 512, rad = 40 + r() * 90; const gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, r() > 0.5 ? "rgba(90,92,100,0.35)" : "rgba(40,40,46,0.3)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - rad, y - rad, 2 * rad, 2 * rad); }
-  for (let i = 0; i < 900; i++) { g.fillStyle = r() > 0.5 ? "rgba(140,140,148,0.35)" : "rgba(30,30,36,0.35)"; g.fillRect(r() * 512, r() * 512, 2, 2); }
 });
 const paveTex = () => ctex("pave", 512, 512, (g, r) => {
-  g.fillStyle = "#8f8a82"; g.fillRect(0, 0, 512, 512);
-  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
-    const v = 0.92 + 0.12 * r(); g.fillStyle = `rgb(${Math.round(188 * v)},${Math.round(182 * v)},${Math.round(172 * v)})`;
-    g.fillRect(x * 128 + 3, y * 128 + 3, 122, 122);
+  g.fillStyle = "#aaa59c"; g.fillRect(0, 0, 512, 512);
+  for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) {
+    const v = 0.95 + 0.07 * r(); g.fillStyle = `rgb(${Math.round(188 * v)},${Math.round(182 * v)},${Math.round(172 * v)})`;
+    g.fillRect(x * 256 + 6, y * 256 + 6, 244, 244);
   }
   for (let i = 0; i < 12; i++) { g.fillStyle = "rgba(60,55,50,0.12)"; g.beginPath(); g.ellipse(r() * 512, r() * 512, 10 + r() * 30, 6 + r() * 16, 0, 0, 7); g.fill(); }
 });
@@ -40,7 +39,7 @@ const soilTex = () => ctex("soil", 1024, 1024, (g, r) => {
   for (let i = 0; i < 140; i++) { const x = r() * 1024, y = r() * 1024, rx = 6 + r() * 18; g.fillStyle = ["#a99a86", "#8f8478", "#c2b49e", "#6e5a48"][i % 4]; g.beginPath(); g.ellipse(x, y, rx, rx * (0.6 + 0.3 * r()), r() * 3, 0, 7); g.fill(); g.strokeStyle = "rgba(50,35,25,0.6)"; g.lineWidth = 2.5; g.stroke(); }
 });
 const sewerBrickTex = () => ctex("sewerBrick", 512, 512, (g, r) => {
-  g.fillStyle = "#3e2c24"; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = "#5a3e30"; g.fillRect(0, 0, 512, 512);
   for (let row = 0; row < 16; row++) for (let i = 0; i < 8; i++) {
     const x = i * 64 + (row % 2) * 32 + 2, y = row * 32 + 2, v = 0.8 + 0.3 * r();
     for (const ox of [0, -512]) { g.fillStyle = `rgb(${Math.round(132 * v)},${Math.round(78 * v)},${Math.round(56 * v)})`; g.fillRect(x + ox, y, 60, 28); g.fillStyle = "rgba(255,220,190,0.1)"; g.fillRect(x + ox + 2, y, 56, 3); }
@@ -241,8 +240,8 @@ export class World {
     const asph = lam("asphalt", () => ({ map: rep(asphaltTex(), 1, 1) })), pave = lam("pave", () => ({ map: rep(paveTex(), 1, 1) }));
     const kerb = lam("kerb", () => ({ color: "#a9a59c" })), white = lam("roadWhite", () => ({ color: "#efece4" })), yellow = lam("roadYellow", () => ({ color: "#e8c03a" }));
     b.add(quadUp(-700, 700, -6, 0, 350, 1.5), asph); bn.add(quadUp(-700, 700, 0, 6, 350, 1.5), asph);
-    b.add(quadUp(-700, 700, -60, -10, 350, 25, 0.15), pave); bn.add(quadUp(-700, 700, 10, 60, 350, 25, 0.15), pave);
-    b.add(quadUp(-700, 700, -10, -6.2, 350, 2, 0.15), pave); bn.add(quadUp(-700, 700, 6.2, 10, 350, 2, 0.15), pave);
+    b.add(quadUp(-700, 700, -60, -10, 700, 25, 0.15), pave); bn.add(quadUp(-700, 700, 10, 60, 700, 25, 0.15), pave);
+    b.add(quadUp(-700, 700, -10, -6.2, 700, 1.9, 0.15), pave); bn.add(quadUp(-700, 700, 6.2, 10, 700, 1.9, 0.15), pave);
     b.add(boxGeo(V(-700, 0, -6.2), V(700, 0.15, -6)), kerb); bn.add(boxGeo(V(-700, 0, 6), V(700, 0.15, 6.2)), kerb);
     for (let x = -700; x < 700; x += 9) bn.add(quadUp(x, x + 4, -0.06, 0.06, 1, 1, 0.006), white); // centre dashes
     for (const z of [-5.75, -5.55]) b.add(quadUp(-700, 700, z - 0.05, z + 0.05, 1, 1, 0.006), yellow);
@@ -299,7 +298,7 @@ export class World {
 
   // ---------------- the sewer + the fatberg ----------------
   private buildUnder() {
-    const brickM = new THREE.MeshLambertMaterial({ map: rep(sewerBrickTex(), 7, 340), side: THREE.DoubleSide });
+    const brickM = new THREE.MeshLambertMaterial({ map: rep(sewerBrickTex(), 4, 120), side: THREE.DoubleSide });
     twoTone(brickM, 0.6);
     const L = 340;
     const half = (start: number) => { const g = new THREE.CylinderGeometry(SEW_R, SEW_R, L, 28, 1, true, start, Math.PI); g.rotateZ(Math.PI / 2); g.translate(0, SEW_Y, 0); return g; };
@@ -308,7 +307,7 @@ export class World {
     this.under.add(back); this.tubeFront.add(front);
     // sludge on the invert
     const hw = Math.sqrt(SEW_R * SEW_R - (FLOOR_Y - SEW_Y) ** 2) + 0.02;
-    const sl = lam("sludge", () => ({ map: rep(sludgeTex(), 1, 1) }));
+    const sl = lam("sludge", () => ({ map: rep(sludgeTex(), 1, 1) })); // 2 m tiles, soft blotches only
     const ub = new Batch(), fb = new Batch();
     ub.add(quadUp(-170, 170, -hw, 0, 170, 1, FLOOR_Y), sl); fb.add(quadUp(-170, 170, 0, hw, 170, 1, FLOOR_Y), sl);
     // access shafts
@@ -356,7 +355,7 @@ export class World {
       db.add(g, wipeM, new THREE.Matrix4().compose(V(x, SEW_Y + rr2 * Math.sin(a), rr2 * Math.cos(a)), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.3 * hash(i, 42), -Math.PI / 2 + 0.4 * (hash(i, 43) - 0.5), hash(i, 44) * 3)), V(1, 1, 1)));
     }
     for (let i = 0; i < 16; i++) {
-      const x = -134 + 7.5 * hash(i, 17), zz = (hash(i, 18) - 0.5) * 1.0, yy = FLOOR_Y + 0.06;
+      const x = -134 + 7.5 * hash(i, 17), zz = (hash(i, 18) > 0.5 ? 1 : -1) * (0.38 + 0.18 * hash(i, 18)), yy = FLOOR_Y + 0.06;
       const m = new THREE.Matrix4().compose(V(x, yy, zz), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.2, hash(i, 19) * 3, 0.15)), V(1, 1, 1));
       db.add(new THREE.CapsuleGeometry(0.15, 0.34, 4, 10).rotateZ(Math.PI / 2).scale(1, 0.75, 1.3), nappyM, m);
       db.add(boxGeo(V(-0.08, 0.04, -0.21), V(0.08, 0.12, 0.21)), tabM, m);
@@ -536,7 +535,7 @@ export class World {
     chunk.position.set(cx, 1.19, cz); chunk.scale.set(0.2, 0.11, 0.15); chunk.rotation.set(0.2, 0.6, 0.1); chunk.castShadow = true; chunk.receiveShadow = true;
     this.sets.museum.add(chunk);
     const glassM = new THREE.MeshBasicMaterial({ color: "#d8eef5", transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide });
-    const gl = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.47, 0.64), glassM); gl.position.set(cx, 1.265, cz); gl.layers.set(NOINK); this.sets.museum.add(gl);
+    void glassM; // no glass panes: a depth-less transparent box made the lens blur stair-step and flicker behind it
     // yellow pustules of mould (scaled in on "toxic mould")
     for (let i = 0; i < 16; i++) {
       const a = hash(i, 30) * Math.PI * 2, e = (hash(i, 31) - 0.2) * 1.2;
@@ -566,6 +565,25 @@ export class World {
     this.sunCache.set(id, v);
     return v;
   }
+  private shadowCache = new Map<string, { Rr: number; ctr: THREE.Vector3 }>();
+  private shadowFrame(id: number, f: number, s: ShotDef, sunDir: THREE.Vector3) {
+    let f0 = s.a;
+    for (const [sid, sf] of SETUPS) if (sid === id && sf <= f && sf > f0) f0 = sf;
+    const key = `${id}|${f0}`;
+    let r = this.shadowCache.get(key);
+    if (r) return r;
+    let f1 = s.b;
+    for (const [sid, sf] of SETUPS) if (sid === id && sf > f0 && sf < f1) f1 = sf;
+    let Rr = 12;
+    for (let k = f0; k < f1; k += 2) { const c = camAt(id, k); Rr = Math.max(Rr, Math.hypot(c.pos[0] - c.look[0], c.pos[1] - c.look[1], c.pos[2] - c.look[2]) * 1.15 + 7); }
+    Rr = Math.min(95, s.light === "golden" ? Math.max(Rr, 30) : Rr);
+    const c0 = camAt(id, f0), ctr = V(...c0.look);
+    const right = V(0, 1, 0).cross(sunDir).normalize(), up = sunDir.clone().cross(right).normalize(), tex = (2 * Rr) / 2048;
+    const u = ctr.dot(right), v = ctr.dot(up);
+    ctr.addScaledVector(right, Math.round(u / tex) * tex - u).addScaledVector(up, Math.round(v / tex) * tex - v);
+    r = { Rr, ctr }; this.shadowCache.set(key, r);
+    return r;
+  }
   private actor(i: number) { while (this.actors.length <= i) this.actors.push(new Actor(this.root)); return this.actors[i]; }
   private fx(i: number) { while (this.fxs.length <= i) this.fxs.push(new Fx(this.root)); return this.fxs[i]; }
 
@@ -580,10 +598,12 @@ export class World {
     this.hemi.color.set(L.sky); this.hemi.groundColor.set(L.ground); this.hemi.intensity = L.hemiI;
     this.sun.color.set(L.sunCol); this.sun.intensity = L.sunI;
     const outdoor = set === "street";
-    this.sun.castShadow = outdoor || set === "kitchen" || set === "bath" || set === "office" || set === "museum" || set === "lab";
-    let Rr = THREE.MathUtils.clamp(dist * 1.15 + 7, 12, 95);
-    if (s.light === "golden") Rr = Math.max(Rr, 30);
-    this.sun.position.copy(focus).addScaledVector(sunDir, 220); this.sun.target.position.copy(focus);
+    this.sun.castShadow = outdoor; // insert rooms: no sun shadows (a 2048 map over a 12 m+ frustum stair-steps and crawls on close props)
+    // shadow map locked per camera setup (size from the widest frame of the setup, centre snapped to the shadow texel
+    // grid): a shadow camera that follows the push-in every frame makes every shadow edge crawl (flicker)
+    const { Rr, ctr } = this.shadowFrame(id, f, s, sunDir);
+    void dist;
+    this.sun.position.copy(ctr).addScaledVector(sunDir, 220); this.sun.target.position.copy(ctr);
     const sc = this.sun.shadow.camera;
     sc.left = -Rr; sc.right = Rr; sc.top = Rr; sc.bottom = -Rr; sc.near = 20; sc.far = 480; sc.updateProjectionMatrix();
     this.sun.shadow.bias = L.bias; this.sun.shadow.normalBias = L.normalBias * (Rr / 12);
@@ -603,7 +623,9 @@ export class World {
       CHAR.uCharTint.value.set(0.95, 0.86, 0.72);
       untone("#1c1814", this.fog.color); this.fog.near = 1.2; this.fog.far = 16;
     }
-    if (id === 12) TONE.uBounce.value.set(1.0, 0.2, 0.06); // warm bounce off the sunlit road onto backlit faces (the bus)
+    if (id === 12) { // backlit sunset: warm dusky shade (not bright blue) + warm bounce so the bus stays London red
+      TONE.uBounce.value.set(0.75, 0.1, 0.03); TONE.uShadeCol.value.set(0.36, 0.24, 0.26); TONE.uShadeLift.value.set(0.05, 0.03, 0.04);
+    }
     scene.fog = this.fog; scene.background = null;
     this.sky.visible = set !== "sewer";
     this.sunDisc.visible = s.light === "golden" && outdoor;

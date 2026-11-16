@@ -96,6 +96,9 @@ After delivering each video, before ending the turn:
    - Every pixel parameter scales with output height / 1920.
 8. **Sound** (`~/bridge-short/audio/`: timeline.py, sfx_gen.py, sfx.py, music.py, instruments.py, dsp.py, mix.py).
    - Event table → synthesized SFX plus an original score ducked under the voice.
+   - SFX must never be annoying: pass the SFX bed through `sfx_ceiling()` (templates/fatberg/audio/sound.py), which
+     keeps it >= 9 dB under the voice in every 400 ms window and <= -26 dBFS in gaps. Low-pass every hiss
+     (jet, tap, steam) at 3.5-4 kHz; place hits/clanks at -8..-11 dB, not -2..-6 (user: "too loud, annoying").
    - Output: mix.wav (48 kHz, exact length), stems and cues.md.
    - Lock the picture's time constants before the sound is made. Any later timing change means re-running the sound.
 9. **Look checks.** Run `node scripts/bridge-stills.mjs out/<name>/x_ 100,400 0.5`.
@@ -112,6 +115,9 @@ After delivering each video, before ending the turn:
     - `npx remotion render src/index.ts <Comp> out/<name>/video.mp4 --codec h264 --crf 16 --scale 1.3333`
     - Mux with `-map 0:v:0 -map 1:a:0` (Remotion writes a silent audio track).
     - QA: `python scripts/short_qa.py final.mp4 out/<name>/qa shots.json` checks every frame for black, white, frozen and pop frames, plus loudness and sheets.
+    - Flicker: `python tools/flicker.py final.mp4 0 shots.json` (pixels that flip bright-dark-bright beyond smooth
+      motion). Users see flicker the QA script misses. Test a fix on 18 frames with `node scripts/range.mjs out.mp4 a b`
+      and compare the score on the same frames of the old render BEFORE re-rendering everything.
     - Fix anything it finds, then run a deep Opus audit.
 11. **Deliver.** SendUserFile the final mp4, update memory, write notes.
 
@@ -163,7 +169,7 @@ lighting 5-6, ink 6, textures 5-6, characters 7, depth 6-7, composition 6-7 (fro
   14 expressions; adults 3.5 head-heights; walk bob 5 %, lean 1-7°, planted 0.8 m stride; blinks 0.5-2.3 s; tight
   contact shadow ~.5 under the feet + sun-direction tail by day; golden rim inner only (never an offset outer copy).
 - **Camera** (`story.ts`): cuts on big jumps, smootherstep glides 18-40 f, every hold creeps (no static hold ≥4 f),
-  flip kicks decaying over 7 f on impacts, 4-4.6° rolls, foreground props (`FOREGROUND`) in ~1/3 of shots.
+  damped impact shakes (4-frame period over 10 f, gain <= 0.8; a per-frame sign flip strobes), 4-4.6° rolls, foreground props (`FOREGROUND`) in ~1/3 of shots.
 
 ## Look targets (measured from the reference; see references/reports/)
 - **Ink:**
@@ -180,7 +186,8 @@ lighting 5-6, ink 6, textures 5-6, characters 7, depth 6-7, composition 6-7 (fro
   - Hard cuts on big jumps. Everything else is a smootherstep glide of 18-40 f, peak ≤ 25 px/f at 720p.
   - Every hold pushes in 0.15-0.35 %/f, with 0.6 %/f on punch words.
   - Rolls of 4-5°.
-  - No hand-held float. Impact shakes flip sign every frame and decay over 7 f.
+  - No hand-held float. Impact shakes: damped cos with a 4-frame period over 10 f (per-frame sign
+    flips read as flicker to viewers).
 - **Characters:**
   - About 3.5 head-heights tall, legs 1.4 HH.
   - Stick limbs about 0.055 of head width, ink-dot hands.
@@ -216,6 +223,15 @@ lighting 5-6, ink 6, textures 5-6, characters 7, depth 6-7, composition 6-7 (fro
 - No Kenney models offline: `loadKit()` returns `{}`; `prop()` still draws the cartoon trees and bushes; build everything else from code.
 - 2K renders run ~4 fps (≈10 min for 67 s). Stills at 0.5 take 3-8 s each after a ~40 s bundle.
 - Film grain at 2.5 % made the 2K file 910 MB instead of ~250 MB and will turn to mush on YouTube; the reference has none. Keep it off.
+
+## Flicker traps (swiftshader render; measured with tools/flicker.py)
+- Transparent depthWrite:false meshes (glass cases) behind/in front of lens-blurred subjects stair-step and change
+  every frame: leave glass out, draw only the frame edges.
+- Sun shadow camera must be locked per camera setup (size from the widest frame, centre snapped to the shadow texel
+  grid, `shadowFrame()` in templates/fatberg/world.ts); small interior/insert sets get no sun shadows at all.
+- No anisotropic filtering in swiftshader: no pixel-size speckle, no fine seams, bricks >= 12 cm rows on surfaces seen
+  at grazing angles (roads, pavements, tunnel walls). MSAA 4 vs 2 changed nothing in swiftshader: keep 2.
+- Vehicles passing close to the lens: <= ~7 m/s at 5 m, or they judder (no motion blur).
 
 ## Readability traps the verifier caught (check every new prop/shot for these)
 - **Hidden things (pipes, tunnels, insides): use a cutaway set** (soil face at one plane, the far half of the pipe,

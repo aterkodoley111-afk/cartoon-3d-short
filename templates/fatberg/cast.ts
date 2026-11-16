@@ -307,7 +307,7 @@ export const stage = (id: number, t: number, f: number, cam: CamInfo): Stage => 
       if (set === "cut") {
         const k = strikeAt(t), after = t >= STRIKE_T;
         const e: Expr = !after ? (t >= W1(89) ? "stern" : "neutral") : t < STRIKE_T + 0.45 ? "shock" : "dazed";
-        front(out, cam, P(22, FL[1], "fl1"), FACE_X - 1.62, FLOOR_Y, -0.15, { mode: "stand", expr: e, prop: ["shovel", q(k, 20)], facing: 1, tilt: after ? q(3 * Math.sin((t - STRIKE_T) * 40) * Math.max(0, 1 - (t - STRIKE_T) * 2), 4) : 0 }, t, 0.82, 0.6);
+        front(out, cam, P(22, FL[1], "fl1"), FACE_X - 1.62, FLOOR_Y, -0.15, { mode: "stand", expr: e, prop: ["shovel", q(k, 20)], facing: 1, tilt: after ? q(3 * Math.sin((t - STRIKE_T) * 16) * Math.max(0, 1 - (t - STRIKE_T) * 1.5), 2) : 0 }, t, 0.82, 0.6);
         if (after && t < STRIKE_T + 0.3) { const u = q((t - STRIKE_T) / 0.3, 10); fxCard(out, `clang${u}`, 500, 500, (pp) => fxBurst(pp, u, "#fff3b0", 10), FACE_X - 0.95, SEW_Y + 0.15, 0.25, 0.55, 0.55); }
       } else {
         front(out, cam, P(23, FL[1], "fl1"), MH_FLOOD[0] - 0.85, G, MH_FLOOD[2] - 0.6, { mode: "sit", expr: "dazed", look: 1 }, t);

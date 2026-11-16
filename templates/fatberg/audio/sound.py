@@ -91,7 +91,7 @@ def sfx():
     t0 = w(7) - 0.1
     add(b, st(lp(r.standard_normal(ns(w(13) - t0)), 90) * 0.6), t0, -12, name="sewer hum")
     for k in range(3): add(b, echo(drip(r)), t0 + 0.3 + k * 0.6, -14, (k - 1) * 0.4, name="drip" if k == 0 else None)
-    add(b, X.whoosh(0.8, r, peak=0.6), w(12) + 0.15, -6, name="whoosh into flash")
+    add(b, X.whoosh(0.8, r, peak=0.6), w(12) + 0.15, -11, name="whoosh into flash")
     # setting: street ambience, the crawler's cable reel clicking as it goes down the manhole
     add(b, traffic(w(24) - w(13), r), w(13), -14)
     add(b, X.rattle(w(23) - w(17), r, density=18), w(17), -16, 0.2, name="cable reel")
@@ -103,45 +103,45 @@ def sfx():
     add(b, st(mot * env_seg(len(tm), 0.2, 0.4)), tc0, -16, name="crawler motor")
     for k in range(8): add(b, echo(drip(r)), tc0 + 0.4 + k * 0.75, -18, r.uniform(-0.6, 0.6))
     for i in [26, 29, 32, 33, 35]: add(b, squelch(r), w(i) - 0.05, -10, r.uniform(-0.3, 0.3), name="squelch" if i == 26 else None)
-    add(b, X.push_thump(r), w(36) - 0.03, -6, name="wall-to-wall thud")
+    add(b, X.push_thump(r), w(36) - 0.03, -10, name="wall-to-wall thud")
     # length: three heavy thumps on the numbers, eleven pop-ins for the buses
-    for i in [47, 54]: add(b, X.push_thump(r), w(i) - 0.04, -4, name=f"thump {i}")
+    for i in [47, 54]: add(b, X.push_thump(r), w(i) - 0.04, -9, name=f"thump {i}")
     for i in range(11): add(b, pop(r, 700 + 40 * i), busIn(i), -10, (i - 5) / 8, name="bus pops" if i == 0 else None)
     add(b, st(engine(1.8, r, 34)), busIn(10) + 0.1, -16)
     # flood: water rising gurgle (cutaway), lid rattle + clank, the splash
-    add(b, gurgle(w(66) - w(61), r, 60, 300, 14), w(61) - 0.1, -6, name="water rising")
+    add(b, gurgle(w(66) - w(61), r, 60, 300, 14), w(61) - 0.1, -12, name="water rising")
     add(b, X.water_bed(w(66) - w(61), r, close=0.8, slosh_rate=1.2), w(61), -12)
     t = w(68)
     while t < LID - 0.05: add(b, X.clink(r, f0=r.uniform(700, 1000), dur=0.08), t, -12, 0.1); t += r.uniform(0.07, 0.13)
-    add(b, X.hammer_hit(r, 0.6), LID, -6, name="lid clank")
-    add(b, X.splash_big(r), LID + 0.02, -6, name="spurt")
+    add(b, X.hammer_hit(r, 0.6), LID, -11, name="lid clank")
+    add(b, X.splash_big(r), LID + 0.02, -13, name="spurt")
     add(b, traffic(w(74) - w(66), r), w(66), -18)
     # crew: marching boots on tarmac; then the jet hose hiss + spatter
     t, k = w(74) - 0.1, 0
     while t < w(79) - 0.05: add(b, X.boot(r, 0.6), t, -12, 0.2 if k % 2 else -0.2, name="crew boots" if k == 0 else None); t += 0.28; k += 1
-    add(b, st(hiss(w(85) - w(80) + 0.2, r, 700)), w(80) - 0.1, -6, name="jet hose")
-    add(b, gurgle(w(85) - w(80), r, 300, 1800, 25), w(80), -14)
+    add(b, st(lp(hiss(w(85) - w(80) + 0.2, r, 700), 3500)), w(80) - 0.1, -15, name="jet hose")
+    add(b, gurgle(w(85) - w(80), r, 300, 1800, 25), w(80), -18)
     # clang: shovel on concrete-hard fat, a dazed ringing; then tankers whooshing past in the time-lapse
-    add(b, metal_clang(r), STRIKE, -2, name="CLANG")
+    add(b, lp(metal_clang(r), 5000), STRIKE, -8, name="CLANG")
     add(b, X.oof(r, kind="oof"), STRIKE + 0.35, -14)
     for k in range(3): add(b, X.whoosh(1.0, r, peak=0.5, f_lo=150, f_hi=900), w(93) + k * 1.45 - 0.2, -8, (k - 1) * 0.5, name="tankers pass" if k == 0 else None)
     add(b, traffic(w(98) - w(93), r), w(93), -18)
     # explanation: soap pop + bubbles, fat pouring, tap water, bath drip + duck squeak, wipe squish
-    add(b, pop(r, 1200), SOAP, -6, name="soap pop"); add(b, X.bubbles(0.8, r, 18, f_lo=900, f_hi=2600), SOAP + 0.05, -14)
+    add(b, pop(r, 1200), SOAP, -11, name="soap pop"); add(b, X.bubbles(0.8, r, 18, f_lo=900, f_hi=2600), SOAP + 0.05, -14)
     add(b, gurgle(1.6, r, 150, 500, 8), w(107), -10, name="fat pours")
-    add(b, hiss(1.2, r, 1800), w(111) - 0.1, -16, name="tap water")
+    add(b, lp(hiss(1.2, r, 1800), 4000), w(111) - 0.1, -23, name="tap water")
     for k in range(3): add(b, drip(r, 1300), w(118) + k * 0.7, -14)
     add(b, I.whistle([(0.0, 76), (0.12, 81)], r) if hasattr(I, "whistle") and False else pop(r, 1800), w(123), -16, name="duck squeak")
     for k in range(3): add(b, squelch(r, 0.25), w(126) + 0.2 + k * 0.5, -14)
     # ban: pen scratch + stamp
     add(b, X.rattle(SEAL - w(139) - 0.2, r, density=45), w(139), -18, 0.1, name="pen scratch")
-    add(b, X.push_thump(r), SEAL, -3, name="seal stamp")
+    add(b, X.push_thump(r), SEAL, -9, name="seal stamp")
     # museum: room tone, buzzing flies, mould squelches
     add(b, st(lp(r.standard_normal(ns(w(164) - w(145))), 400) * 0.2), w(145), -24)
     for k in range(3): add(b, buzz(w(164) - w(158) - k * 0.2, r, 190 + 30 * k), w(158) - 0.1 + k * 0.2, -14, (k - 1) * 0.5, name="flies" if k == 0 else None)
     for k in range(4): add(b, squelch(r, 0.2), w(161) + k * 0.18, -16)
     # biodiesel: glug glug
-    add(b, gurgle(w(170) - w(164) - 0.3, r, 120, 420, 7), w(164) + 0.3, -8, name="fuel glugs")
+    add(b, gurgle(w(170) - w(164) - 0.3, r, 120, 420, 7), w(164) + 0.3, -12, name="fuel glugs")
     # golden ending: evening street, the bus coming down the road, a cheerful horn toot as it passes
     tE = w(170) - 0.2
     add(b, traffic(DUR - tE, r), tE, -18)
@@ -228,6 +228,22 @@ def music():
     add(b, I.vibes(I.m2f(72), 0.6, r, dur=2.0), DUR - 1.4, -9)
     return b
 
+def sfx_ceiling(s, vb, margin=9.0, gap_max=-26.0):
+    """smooth gain so the SFX bed stays >= `margin` dB under the voice in every 400 ms window (and under `gap_max`
+    dBFS RMS where nobody speaks): loud hisses, clanks and gurgles were the annoying moments in the fatberg short"""
+    hop = ns(0.05); win = ns(0.4); n = s.shape[1]
+    def env(x):
+        p = np.convolve((x ** 2).mean(0), np.ones(win) / win, "same")
+        return 10 * np.log10(p[::hop] + 1e-12)
+    S, V = env(s), env(vb)
+    lim = np.where(V > -45, V - margin, gap_max)
+    g = np.minimum(0.0, lim - S)
+    g = np.minimum.accumulate(g[::-1])[::-1] if False else g
+    k = 5; g = np.array([g[max(0, i - k):i + k + 1].min() for i in range(len(g))])   # look-ahead/hold
+    g = np.convolve(g, np.ones(4) / 4, "same")
+    gl = np.interp(np.arange(n), np.arange(len(g)) * hop, g)
+    return s * dbg(gl)[None, :]
+
 def duck_curve():
     g = np.zeros(N)
     for wd in WJ["words"]: g[ns(wd["s"]):ns(wd["e"])] = 1
@@ -243,6 +259,7 @@ if __name__ == "__main__":
     s = sfx()
     Lv = integrated(vb)
     m *= dbg(Lv - 10 - integrated(m)); s *= dbg(Lv - 10 - integrated(s))
+    s = sfx_ceiling(s, vb)
     mix = vb + m + s
     g = dbg(-15.0 - integrated(mix)); mix *= g
     tp = true_peak(mix)
