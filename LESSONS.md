@@ -3,6 +3,42 @@
 One entry per finished video, newest first. Each entry records what went wrong, what fixed it and what changed in
 SKILL.md, so the next video starts from a better place. SKILL.md holds the distilled rules; this file keeps the history.
 
+## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16
+
+- Result: 66.1 s, 1440x2560 (rendered 1080x1920, lanczos upscale), 14 shots / 29 camera setups, user's ElevenLabs
+  voiceover (200 words; raw 79.4 s -> 65.3 s after tightening pauses + atempo 1.10), original score + synthesized SFX,
+  -15 LUFS / -1.2 dBTP, 1983 frames. Render 3.1-6.9 s/frame (bus/room shots with lens blur slowest), 45 chunks, two runs
+  (the 7000 s budget ran out at 36/45).
+- Project: `projects/hope-slide/`. Source: `templates/hope/` (a whole mountain valley as height functions in
+  `terrain.ts`: Johnson Peak, Mount Coulter, Outram Lake, an analytic slide = scar + travelling mass + deposit;
+  ~4000 stylised conifers in toppling bands; vehicles built from boxes with real window holes; crack ribbons).
+
+### What went wrong, and the fix
+1. **Cameras placed by intuition landed on Mount Coulter's slope** (keepUp lifted them to the surface, frames were
+   80 % slope) or looked at the wrong thing. Five still rounds (~12 s/still) were spent. Fix: `tools/check_framing.ts`
+   (bundled with esbuild, runs in 1 s) projects named subject points for the first/mid/last frame of every setup,
+   reports terrain occlusion, lens height above ground and what the top/centre/bottom rays hit. Run it after every
+   camera edit, before any stills.
+2. **A 45-degree face seen head-on reads as a flat wall**; profile/oblique views with the peak silhouetted against the
+   sky read at once. Put landscape cameras along the valley axis, low, with the subject's silhouette against the sky.
+3. **Terrain self-shadowing at a low sun turned whole faces violet.** Terrain `castShadow = false` (it still receives).
+4. **Set pieces buried by the terrain:** the lake sat 7 m under the mountain foot; the new road's embankment covered
+   the old road. Check `H0` at every set piece and keep features' footprints apart.
+5. **Camera-facing crack card floated in the sky; vertex-colour cracks blurred into smudges.** Draped ribbon meshes
+   (MeshBasic, polygonOffset, NOINK) along polylines on the face read as ink cracks; width per shot by distance.
+6. **Soft puff cards in front of trees get the world ink drawn through them** (ink pass ignores NOINK cards). The snow
+   avalanche became a mesh tongue + a few small puffs; big dust is kept away from busy backgrounds.
+7. Verifier: "before dawn" lit like sunrise (hard 20-degree sun) -> softer pre-dawn preset (el 10, shade close to lit);
+   forest vanished instead of falling -> tree bands pivot on their ground line and topple before hiding; inserts
+   floated -> seat cards on floor/desk; official looked like a driver -> bowler, moustache, paper in hand.
+
+### What worked (keep)
+- One analytic terrain function shared by mesh, cameras and cast: deterministic per frame, cached by state key.
+- Hook = the climax replayed ~2x fast; ending reuses the hook's camera (bookend) on today's scarred peak.
+- Tragedy handled plainly: the "four people" beat is a quiet wide with a pad and no percussion.
+
+---
+
 ## Video 3: The River That Caught Fire (Cuyahoga, Cleveland 1969), 2026-11-16
 
 - Result: 67.6 s, 1440x2560 (rendered 1080x1920, lanczos upscale), 13 shots / 28 camera setups, user's ElevenLabs

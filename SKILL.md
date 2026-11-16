@@ -18,7 +18,10 @@ set), sound `templates/molasses/audio/sound.py`, project files `projects/molasse
 (industrial river, wooden trestle + train, fireboat sprays, flame/smoke-card fire, three insert rooms, today set),
 sound `templates/river/audio/sound.py`, project files `projects/river-fire/`. Start new shorts from whichever example
 is closer: bridge (crowds marching, structure physics), molasses (flood/fluid, inserts, era change) or river (fire,
-vehicles, industrial set, many small insert gags).
+vehicles, industrial set, many small insert gags). Proven example 4: **The Mountain That Suddenly Disappeared** (Hope
+Slide, BC 1965), 66 s: source `templates/hope/` (landscape as height functions in `terrain.ts`, a travelling landslide,
+conifer bands, vehicles with window holes), project files `projects/hope-slide/`. Start landscape/disaster shorts
+from it.
 
 The style reference is a channel studied privately (`references/`: STYLE_BIBLE.md, reports/*.md, frames/).
 - Those videos are private study material. Never upload, publish or send them.
@@ -99,6 +102,9 @@ After delivering each video, before ending the turn:
      facts list: it catches pictures that contradict history (river: an unsigned-by-Nixon bill, the photo inside Time
      not on the cover, a fire that was small).
    - Do this BEFORE the first full render; a verifier round after the render started cost a restart.
+   - Before any stills, run `tools/check_framing.ts` (bundle with `npx esbuild tools/check.ts --bundle --platform=node`)
+     after every camera edit: it projects named subject points per setup and flags terrain occlusion and low lenses.
+     It replaced most still rounds on the Hope Slide.
 10. **Final render.**
     - `npx remotion render src/index.ts <Comp> out/<name>/video.mp4 --codec h264 --crf 16 --scale 1.3333`
     - Mux with `-map 0:v:0 -map 1:a:0` (Remotion writes a silent audio track).
@@ -111,6 +117,8 @@ After delivering each video, before ending the turn:
   from GitHub releases, then the script words are aligned with difflib; numbers/hyphenated words get interpolated). The
   Molasses Flood voiceover matched 212 of 221 words. Then generate `words.ts` from words.json and key every cut to
   word indices `W(i)` so a new recording retimes the whole film.
+- A slow recording (natural TTS ~2.5 words/s, long pauses): `python tools/tighten.py raw.wav tight.wav 0.25` caps
+  every pause at 0.25 s and trims the lead-in, then `atempo` up to 1.10 keeps the voice natural (Hope: 79.4 -> 65.3 s).
 - Scratch/offline voice: `tools/scratch_tts.py` (Kokoro onnx from GitHub releases, `bm_george`, speed 1.4 = ~3.7 w/s).
 - Length: brisk AI read ~3.7 words/s; natural TTS/human read ~2.7 words/s. For 60 s with a natural voice, write ~165 words.
 - HuggingFace, kenney.nl and most model hosts are blocked in the cloud; GitHub release assets work.
@@ -121,7 +129,8 @@ After delivering each video, before ending the turn:
   lanczos in `tools/assemble.sh`. Tell the user the render time and resolution before starting.
 - Speed settings (in templates/molasses): lens passes only when `dofAt(f).cInf > 0.05`, bloom only in golden light,
   MSAA 2, shadow map 2048, lens taps 40 + 16 near, concurrency 1.
-- Render with `node scripts/chunks.mjs <budgetSeconds> 45`: resumable 45-frame chunks in `out/<name>/chunks/`. Run it as
+- Render with `node scripts/chunks.mjs <budgetSeconds> 45` (2000 frames at 3-7 s/frame need ~2.5 h: give a budget of
+  9000 or plan the rerun): resumable 45-frame chunks in `out/<name>/chunks/`. Run it as
   a background job (2 h limit) and poll with `sleep 590`; when it stops, rerun it (it skips finished chunks).
 - Before any restart: kill `chunks.mjs`, `chrome-linux64` and `compositor-linux` (a surviving old process renders
   stale code), and delete `out/<name>/bundle.txt` after any code change.
@@ -233,5 +242,13 @@ lighting 5-6, ink 6, textures 5-6, characters 7, depth 6-7, composition 6-7 (fro
 - Golden backlight on a frame full of big walls goes to blue silhouettes: turn the ending's sun to az ~140, el ~14.
 - Smoke/fog cards near the lens black out the frame: none within ~10 m of the camera.
 - Short stroke marks in a water texture read as a lawn or deck at grazing angles: water gets soft blotches only.
+- **Landscapes:** a steep face seen head-on is a flat wall; frame peaks obliquely from along the valley so their
+  silhouette meets the sky. Keep cameras off the opposite slope (the lens gets lifted onto it). Terrain must not cast
+  shadows (whole faces go violet at a low sun). Check the ground height at every set piece (a lake ended up under the
+  mountain foot) and keep footprints apart (an embankment buried the old road).
+- Cracks or marks on terrain: draped ribbon meshes along polylines, not camera-facing cards (they float) or vertex
+  colours (they blur).
+- Soft cards in front of detailed scenery get world ink lines through them: use mesh effects (a snow tongue) or keep
+  dust where the background is plain.
 - Big buildings within ~10 m behind a low-angle subject fill the frame with wall: move them back or put the hero
   object (stacks) in front of them.

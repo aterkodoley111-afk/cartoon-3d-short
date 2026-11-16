@@ -1,0 +1,49 @@
+# Cues (s)
+
+duration 66.100 s, integrated -15.0 LUFS, true peak -1.2 dBTP
+
+-   0.00  hook dread
+-   0.00  slide rumble (hook)
+-   0.94  face cracks
+-   1.81  timp seconds
+-   4.66  whoosh into flash
+-   5.36  cold wind
+-   8.74  distant car
+-  11.48  snow whumph
+-  13.16  snow lands
+-  15.28  rev + spin
+-  16.24  tanker diesel
+-  17.86  air brakes
+-  19.29  hay truck brakes
+-  19.63  watch ticks
+-  21.35  the face cracks
+-  21.74  BOOM
+-  21.78  slide rumble
+-  22.32  slide stab
+-  25.68  trees snap
+-  27.19  the lake
+-  28.65  across
+-  30.81  top of Coulter
+-  31.07  slides back
+-  31.27  slides back fall
+-  32.35  tub slosh
+-  33.23  duck squeak
+-  34.16  bus brakes
+-  37.27  quiet pad
+-  37.37  quiet wind
+-  41.33  drum motor
+-  41.53  pen scratch
+-  43.04  pen scribbles
+-  45.29  paper rustle
+-  47.45  pencil sketch
+-  47.74  aha ding
+-  48.63  cracks pad
+-  49.65  rock creaks
+-  52.63  cookie cracks
+-  55.13  gravity fall
+-  55.32  half slides
+-  55.92  cookie lands
+-  56.02  bulldozer
+-  58.82  On top chord
+-  59.54  golden ending
+-  59.98  car passes
