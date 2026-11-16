@@ -18,7 +18,10 @@ set), sound `templates/molasses/audio/sound.py`, project files `projects/molasse
 (industrial river, wooden trestle + train, fireboat sprays, flame/smoke-card fire, three insert rooms, today set),
 sound `templates/river/audio/sound.py`, project files `projects/river-fire/`. Start new shorts from whichever example
 is closer: bridge (crowds marching, structure physics), molasses (flood/fluid, inserts, era change) or river (fire,
-vehicles, industrial set, many small insert gags). Proven example 4: **The Mountain That Suddenly Disappeared** (Hope
+vehicles, industrial set, many small insert gags). Proven example 5: **The 250-Metre Monster Hiding Under London** (Whitechapel fatberg 2017), 61 s: source
+`templates/fatberg/` (London terraces, a sewer + CUTAWAY diagram set, buses/tankers from boxes, five insert rooms),
+project files `projects/whitechapel-fatberg/`. Start "something hidden underground / inside" shorts from it.
+Proven example 4: **The Mountain That Suddenly Disappeared** (Hope
 Slide, BC 1965), 66 s: source `templates/hope/` (landscape as height functions in `terrain.ts`, a travelling landslide,
 conifer bands, vehicles with window holes), project files `projects/hope-slide/`. Start landscape/disaster shorts
 from it.
@@ -129,8 +132,8 @@ After delivering each video, before ending the turn:
   lanczos in `tools/assemble.sh`. Tell the user the render time and resolution before starting.
 - Speed settings (in templates/molasses): lens passes only when `dofAt(f).cInf > 0.05`, bloom only in golden light,
   MSAA 2, shadow map 2048, lens taps 40 + 16 near, concurrency 1.
-- Render with `node scripts/chunks.mjs <budgetSeconds> 45` (2000 frames at 3-7 s/frame need ~2.5 h: give a budget of
-  9000 or plan the rerun): resumable 45-frame chunks in `out/<name>/chunks/`. Run it as
+- Render with `node scripts/chunks.mjs <budgetSeconds> 45` (2000 frames at 3-7 s/frame need ~2.5 h; interiors and
+  close sewer/insert shots with lens blur run 7-10 s/frame, so 1835 frames took 3.6 h: plan the rerun): resumable 45-frame chunks in `out/<name>/chunks/`. Run it as
   a background job (2 h limit) and poll with `sleep 590`; when it stops, rerun it (it skips finished chunks).
 - Before any restart: kill `chunks.mjs`, `chrome-linux64` and `compositor-linux` (a surviving old process renders
   stale code), and delete `out/<name>/bundle.txt` after any code change.
@@ -215,6 +218,15 @@ lighting 5-6, ink 6, textures 5-6, characters 7, depth 6-7, composition 6-7 (fro
 - Film grain at 2.5 % made the 2K file 910 MB instead of ~250 MB and will turn to mush on YouTube; the reference has none. Keep it off.
 
 ## Readability traps the verifier caught (check every new prop/shot for these)
+- **Hidden things (pipes, tunnels, insides): use a cutaway set** (soil face at one plane, the far half of the pipe,
+  the contents as a flat textured cross-section, a brick rim). Cards stand in the half pipe; no cramped interior lens.
+- Displaced `IcosahedronGeometry`/`SphereGeometry` must go through `mergeVertices()` first or every facet gets an ink
+  crease. Rounded mesh ends need planar UVs (radial UVs pinch into an onion).
+- Low golden sun in a street of 12 m+ buildings shadows the road and anything on it: put the sun along the street
+  axis, and add a per-shot warm `TONE.uBounce` so hero objects in shade keep their colour (a red bus went magenta).
+- Never place a street camera inside a building footprint; long props (bathtub) should recede from the lens, and the
+  lens must sit above their rim line. Documents lie flat and are shot from above at ~45 degrees.
+- Fast passes: a 10 m vehicle at 46 m/s crosses a 3 m-wide frame in 2 frames. Keep screen crossings >= ~20 frames.
 - **Test the first, middle and last frame of every shot**, not just one mid frame: the Molasses hook's opening frames
   (column dead centre, runners behind the lens) were only caught after rendering. Cameras that follow a moving event
   must be functions of it (e.g. `frontX(tau)`).

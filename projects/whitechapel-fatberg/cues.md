@@ -1,0 +1,47 @@
+# Cues (s)
+
+duration 61.167 s, integrated -15.0 LUFS, true peak -1.1 dBTP
+
+-   0.00  bus engine
+-   0.00  hook bed
+-   0.00  street traffic
+-   2.06  sewer hum
+-   2.36  drip
+-   3.79  whoosh into flash
+-   7.00  cable reel
+-   9.10  crawler motor
+-   9.10  pipe rumble
+-   9.67  squelch
+-  14.12  wall-to-wall stab
+-  14.13  wall-to-wall thud
+-  16.94  stomp 46
+-  17.38  thump 47
+-  19.18  stomp 53
+-  19.62  thump 54
+-  20.68  bus pops
+-  20.74  stomp 58
+-  22.40  flood tension
+-  22.40  water rising
+-  25.54  flood stab
+-  25.54  lid clank
+-  25.56  spurt
+-  26.60  crew boots
+-  28.88  jet hose
+-  33.00  CLANG
+-  33.42  tankers pass
+-  33.45  sad trombone fall
+-  37.30  soap ding
+-  37.30  soap pop
+-  37.79  fat pours
+-  38.81  tap water
+-  42.59  duck squeak
+-  46.41  ban build
+-  47.47  pen scratch
+-  48.61  seal chord
+-  48.61  seal stamp
+-  52.22  flies
+-  54.74  fuel glugs
+-  54.96  fuel sparkle
+-  56.16  bus approaching
+-  56.16  golden ending
+-  59.35  bus toot

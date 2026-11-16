@@ -3,6 +3,48 @@
 One entry per finished video, newest first. Each entry records what went wrong, what fixed it and what changed in
 SKILL.md, so the next video starts from a better place. SKILL.md holds the distilled rules; this file keeps the history.
 
+## Video 5: The 250-Metre Monster Hiding Under London (Whitechapel fatberg, 2017), 2026-11-17
+
+- Result: 61.2 s, 1440x2560 (rendered 1080x1920, lanczos upscale), 12 shots / 26 camera setups, user's ElevenLabs
+  voiceover (185 words; raw 72.5 s -> 66.4 s after `tighten.py 0.25` -> 60.3 s with atempo 1.10; align matched 178/185),
+  original score + synthesized SFX, -15.0 LUFS / -1.1 dBTP, 1835 frames, 104 MB. Render 3.2-10.2 s/frame (sewer +
+  lens blur and insert rooms 7-10, plain street 3.5), 41 chunks, two runs (7000 s budget ran out at 26/41), ~3.6 h total.
+- Project: `projects/whitechapel-fatberg/`. Source: `templates/fatberg/` (a London street of brick terraces with
+  shopfronts + `londonFacade()` texture, a sewer as two half-cylinders, a lumpy 250 m plug mesh, a CUTAWAY set: soil
+  face at z = 0 + pipe back half + the plug as a flat cross-section `ShapeGeometry` + a flood plane scaled in y,
+  double-decker bus / tanker / van built from boxes, CCTV crawler, five insert rooms; new fx cards in `fxfat.ts`).
+
+### What went wrong, and the fix
+1. **`IcosahedronGeometry` is non-indexed, so `computeVertexNormals()` gave faceted rocks** (every facet got an ink
+   crease). Fix: `mergeVertices()` (after deleting normal/uv) before displacing -> smooth blobs.
+2. **A tube mesh's rounded end with radial UVs pinched into an "onion" at the pole.** Fix: planar UVs on the cap rings
+   plus a cluster of lump meshes covering the pole.
+3. **Low golden sun in a street canyon puts the whole road and the bus in shadow** (terraces 12-15 m tall, 10 m from
+   the road centre). The bus turned magenta (red x violet shade). Fix: sun along the street axis (backlit sunset, az 4)
+   and a per-shot warm `uBounce` (1.0, 0.2, 0.06) so shaded faces turned to the lens stay red.
+4. **Camera placed inside a terrace block** (aerial over the bus line at z = 15 with houses at z 10-22): a brick wall
+   filled a quarter of the frame. Keep street cameras over the road or the pavement (|z| < 10).
+5. **A bathtub seen from 2.1 m at lens height 1.25 m showed only its outer wall** (sight line below the 0.62 m rim).
+   Turn long props so they recede from the lens and raise the camera above the rim line.
+6. **A flat document card shot with the standard horizontal insert camera became a sliver.** Lay documents flat
+   (`flat: true, rot: PI`) and shoot from ~1.5 m above at ~45 degrees.
+7. **Hand-held props past the canvas edge are cut off**: the 600-unit design canvas only reaches ~1.3 m wide. Long
+   tools (jet lance) start from the chest-held hand (x ~ tcx + 0.45 T.a) and stay under ~100 u.
+8. Verifier: half its list were frames taken before an animation started (empty sink, no flood yet, no flies yet).
+   Give the verifier the mid frame of every setup plus first frames, and label which frames precede their action.
+   Real catches: buses merged into one red train (gap 0.6 -> 2.6 m), tanker passing in 2 frames (46 m/s -> 14 m/s),
+   scum ring too faint, a crop at the frame edge.
+
+### What worked (keep)
+- The **cutaway** reads instantly as a diagram: soil face with a brick rim above/below the pipe, the plug as a flat
+  textured cross-section, cards standing in the half pipe; the jet and the clang shots work in it with no tight camera.
+- Sewer lighting without new presets: override TONE/CHAR uniforms and fog (#1c1814, 1.2 -> 16 m) when set = sewer,
+  sun shadows off; the dark fog gives the tunnel depth for free.
+- Callback ending: "weighed as much as eleven buses ... now helps to run them": the eleven buses popping in on the
+  number, then one bus at sunset.
+
+---
+
 ## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16
 
 - Result: 66.1 s, 1440x2560 (rendered 1080x1920, lanczos upscale), 14 shots / 29 camera setups, user's ElevenLabs
