@@ -1,0 +1,44 @@
+# Cues (s)
+
+duration 67.600 s, integrated -15.0 LUFS, true peak -2.0 dBTP
+
+-   0.00  hook bed
+-   0.00  river fire (hook)
+-   5.14  whoosh into flash
+-   5.34  mill hum
+-  10.38  factory whistle
+-  11.40  oil glugs
+-  13.44  grease glops
+-  17.44  gull
+-  20.36  chalk
+-  21.84  train rumble
+-  22.18  diesel horn
+-  24.48  trestle creaks
+-  26.15  spark zing
+-  26.88  whoomph
+-  27.00  spark lands
+-  27.28  fire
+-  28.83  flames stab
+-  29.54  boat engine
+-  30.74  water cannon
+-  31.76  steam sizzle
+-  33.28  running
+-  36.18  flash charge
+-  36.68  flash pop
+-  36.73  sad trombone fall
+-  37.15  typewriter
+-  39.69  drawer
+-  42.51  blow dust
+-  42.56  1952 ding
+-  44.71  match strike
+-  46.73  match hisses out
+-  48.85  spoon
+-  51.01  oil pours
+-  54.11  rising build
+-  54.92  gasp
+-  56.53  pen scratch
+-  60.93  Act chord
+-  60.93  seal stamp
+-  61.15  golden ending
+-  64.79  fish splash
+-  66.55  phone shutter

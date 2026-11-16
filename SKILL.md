@@ -14,8 +14,11 @@ Proven example: **The Bridge That Fell for a Song**. It is an original 67 s shor
 
 Proven example 2: **The Sweetest Disaster** (Great Molasses Flood, Boston 1919), 82.9 s, made in a cloud workspace
 with no GPU. Source `templates/molasses/` (waterfront town, live fluid heightfield, interior insert sets, present-day
-set), sound `templates/molasses/audio/sound.py`, project files `projects/molasses-flood/`. Start new shorts from
-whichever example is closer: bridge (crowds marching, structure physics) or molasses (flood/fluid, inserts, era change).
+set), sound `templates/molasses/audio/sound.py`, project files `projects/molasses-flood/`. Proven example 3: **The River That Caught Fire** (Cuyahoga, Cleveland 1969), 67.6 s: source `templates/river/`
+(industrial river, wooden trestle + train, fireboat sprays, flame/smoke-card fire, three insert rooms, today set),
+sound `templates/river/audio/sound.py`, project files `projects/river-fire/`. Start new shorts from whichever example
+is closer: bridge (crowds marching, structure physics), molasses (flood/fluid, inserts, era change) or river (fire,
+vehicles, industrial set, many small insert gags).
 
 The style reference is a channel studied privately (`references/`: STYLE_BIBLE.md, reports/*.md, frames/).
 - Those videos are private study material. Never upload, publish or send them.
@@ -92,7 +95,10 @@ After delivering each video, before ending the turn:
 9. **Look checks.** Run `node scripts/bridge-stills.mjs out/<name>/x_ 100,400 0.5`.
    - Set `BRIDGE_ENTRY=src/sandboxes/<n>/index.tsx` to render a sandbox copy.
    - Make side-by-sides against reference frames with `python scripts/sbs_sheet.py out.jpg --ours ... --ref ...`.
-   - Send them to an Opus max verifier: 1-3 images, a ≤200-word verdict.
+   - Send them to an Opus max verifier: 1-3 images, a ≤200-word verdict. Give it the narration per frame AND the
+     facts list: it catches pictures that contradict history (river: an unsigned-by-Nixon bill, the photo inside Time
+     not on the cover, a fire that was small).
+   - Do this BEFORE the first full render; a verifier round after the render started cost a restart.
 10. **Final render.**
     - `npx remotion render src/index.ts <Comp> out/<name>/video.mp4 --codec h264 --crf 16 --scale 1.3333`
     - Mux with `-map 0:v:0 -map 1:a:0` (Remotion writes a silent audio track).
@@ -221,3 +227,11 @@ lighting 5-6, ink 6, textures 5-6, characters 7, depth 6-7, composition 6-7 (fro
 - Golden rim light done as an offset outer copy turns every hat into a picture frame: inner rim only, head/torso only.
 - Balcony/railing rails at chest height through characters: put the lens ~2.5 m up so rails cross legs, not torsos.
 - Flat holds read as freezes in QA (frozen span ≥12 f): every hold needs a creeping push-in.
+- **Insert cards** (photos, documents, bowls) at ~1.25 m with fov 38 get a frame only ~0.48 m wide: keep them ≤ 0.45 m.
+- Poles (lamp posts, bollards) in the middle third of a wide read as a split screen: no street furniture near the action.
+- A character walking across a narrow vertical frame leaves it: the camera follows a shared position function.
+- Golden backlight on a frame full of big walls goes to blue silhouettes: turn the ending's sun to az ~140, el ~14.
+- Smoke/fog cards near the lens black out the frame: none within ~10 m of the camera.
+- Short stroke marks in a water texture read as a lawn or deck at grazing angles: water gets soft blotches only.
+- Big buildings within ~10 m behind a low-angle subject fill the frame with wall: move them back or put the hero
+  object (stacks) in front of them.

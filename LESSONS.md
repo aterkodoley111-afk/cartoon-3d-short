@@ -3,6 +3,49 @@
 One entry per finished video, newest first. Each entry records what went wrong, what fixed it and what changed in
 SKILL.md, so the next video starts from a better place. SKILL.md holds the distilled rules; this file keeps the history.
 
+## Video 3: The River That Caught Fire (Cuyahoga, Cleveland 1969), 2026-11-16
+
+- Result: 67.6 s, 1440x2560 (rendered 1080x1920, lanczos upscale), 13 shots / 28 camera setups, user's ElevenLabs
+  voiceover (181 words, 66.8 s = 2.71 words/s), original score + synthesized SFX, -15 LUFS / -2 dBTP, 2028 frames, 106 MB.
+  Render: 2.3 h at 1080x1920 swiftshader (2.2-9.6 s/frame, 4.2 average), 46 chunks of 45 frames, two runs.
+- Project: `projects/river-fire/` (script + sources, words.json, shots.json, cues.md, test frames).
+  Source: `templates/river/` (industrial river world: bulkheads, mills + free-standing stacks, wooden trestle, train,
+  fireboat with live Tube sprays, junk raft, slick plane, flame/smoke card fire, three interior insert sets, today set).
+
+### What went wrong, and the fix
+1. **Insert cards were too wide for the vertical frame.** At 1.2-1.3 m from the lens with fov 38 the frame is only
+   ~0.48 m wide; 0.76-0.9 m cards were cropped. Fix: insert cards <= 0.45 m wide at ~1.25 m (or move the lens back).
+2. **Big buildings right behind a subject** (shed 8 m behind the steelworker) filled a low-angle shot with wall. Fix:
+   free-standing smokestacks in front of the sheds (z -29..-31), sheds pushed back to z <= -35.
+3. **Lamp posts and bollards along the bank sat dead centre** in two wides. Fix: no street furniture within 45 m of
+   the action; check every wide for vertical poles in the middle third.
+4. **A walking character left the frame** (camera aimed at the end point). Fix: the camera follows the walker
+   (`photogX(t)` shared by story.ts and cast.ts).
+5. **Characters placed next to the trestle** got piles through them. Keep characters >= 8 m from structures that
+   continue onto the bank.
+6. **Golden backlight (az 6) turned the today set into blue silhouettes** when the frame is full of big walls. Fix:
+   sunAz 140 / el 14 per shot for the ending.
+7. **Near-lens smoke cards** blacked out the top half of the hook. Fix: no smoke card within 10 m of the lens, alpha 0.7.
+8. **Verifier caught history errors I had baked into the pictures**: Nixon vetoed the Clean Water Act (Congress overrode
+   it), so no signature on the bill; Time ran the 1952 photo inside, not on the cover; the 1969 fire was small and at
+   the trestle, not the whole river (fire radius capped at 12.5 m). Fix: check every insert prop against the facts
+   list, not just the narration.
+9. **Streaky water texture read as a lawn/deck** at grazing angles. Fix: river textures are soft blotches only, no
+   short strokes; 1969 water dark brown-grey #4c4636.
+10. **A camera following a moving vehicle started behind a building** (fireboat shot: frames 895-920 were a blurred
+    brick wall) because its test stills were taken late in the shot when the boat had moved. Fixed by re-rendering 3
+    chunks. Same rule as before, now enforced: render the FIRST frame of every shot whose camera is a function of a
+    moving object.
+11. Render restarted once after the verifier (~15 min lost). Run the verifier on the first contact sheet BEFORE the
+    first full render, not in parallel with it.
+
+### What worked (keep)
+- Fire as camera-facing flame cards on a jittered grid, lit by distance from the ignition point (`fireR(tau)`,
+  bisection for each card's age), put out from the boat's side (`outAt`), with dark smoke turning to steam.
+- Story beats as visual gags that are facts: chalk tally of earlier fires, photographer's flash on empty steam,
+  dust blown off the 1952 photo, the ending's phone photo calling back "nobody took a single photo".
+- Sad brass fall (`brass(kind="soft", fall=-5)`) on the punch line; music cut dead on "spark", brass stab on "flames".
+
 ---
 
 ## Video 2: The Sweetest Disaster (Great Molasses Flood, Boston 1919), 2026-11-16
