@@ -115,6 +115,15 @@ SKILL.md, so the next video starts from a better place. SKILL.md holds the disti
 - New SKILL.md "REALISM CHECKLIST for every scene" covering vehicles, people in vehicles, buildings, street, nature,
   liquids/effects, interiors, light, motion and scale.
 
+### Feedback: "why is the car steering wheel not in its own place"
+- The wheel was drawn on the driver's billboard card, so it turned with the camera and looked stuck to his chest.
+  Fix: real 3D steering assembly (column, tilted rim, spokes, hub) fixed in the car; handTargets() projects the two
+  grip points through the camera onto the card plane and the card's arms are drawn to them (FrontOpts.hands).
+  Checked from the front, the back seat and above (templates/real/test_steering.jpg).
+- My own bug while tuning: a sed inserted "//" before body.add(mount) on the same line, so the wheel vanished and I
+  first misread it as "too low". Rule: never append a comment in the middle of a statement line; when a change
+  makes something disappear, check that it is still attached before moving it.
+
 ---
 
 ## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16

@@ -92,7 +92,7 @@ export class Pour {
 
 // ======================================================================= vehicles
 type Mats = { body: THREE.Material; glass: THREE.Material; trim: THREE.Material; tyre: THREE.Material; hub: THREE.Material; light: THREE.Material; seat: THREE.Material; interior: THREE.Material;
-  side?: THREE.Material; blur?: THREE.Material; gauge?: THREE.Material; carpet?: THREE.Material; doorCard?: THREE.Material; seatInsert?: THREE.Material; chrome?: THREE.Material; lens?: THREE.Material; tail?: THREE.Material; plateF?: THREE.Material; plateR?: THREE.Material; rubber?: THREE.Material; amber?: THREE.Material };
+  side?: THREE.Material; blur?: THREE.Material; gauge?: THREE.Material; wheelGrip?: THREE.Material; carpet?: THREE.Material; doorCard?: THREE.Material; seatInsert?: THREE.Material; chrome?: THREE.Material; lens?: THREE.Material; tail?: THREE.Material; plateF?: THREE.Material; plateR?: THREE.Material; rubber?: THREE.Material; amber?: THREE.Material };
 
 // ---------------- painted textures for real-looking cars (deterministic canvases) ----------------
 const ctx = (w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) => {
@@ -175,7 +175,7 @@ export const carMaterials = (paint: string, golden = false): Mats => {
     plateF: P("#ffffff", { map: plateTex(false) }), plateR: P("#ffffff", { map: plateTex(true) }),
     seat: P("#3a3f4a", { shininess: 10 }), interior: P("#2e2c30", { shininess: 10 }),
     seatInsert: P("#ffffff", { map: fabricTex("#4a5060"), shininess: 6 }), carpet: P("#ffffff", { map: fabricTex("#2a2a2e", true), shininess: 2 }),
-    doorCard: P("#ffffff", { map: doorCardTex(), shininess: 8 }),
+    doorCard: P("#ffffff", { map: doorCardTex(), shininess: 8 }), wheelGrip: P("#1a191d", { specular: "#555", shininess: 30 }),
     gauge: P("#101014", { emissive: new THREE.Color("#7fd0ff"), emissiveIntensity: 0.5 }),
   };
 };
@@ -257,7 +257,26 @@ const contactShadow = (L: number, W: number) => {
  *  so the shoulders sit just above the window line and the head clears the roof by ~5 cm. */
 export const seatWorld = (v: Vehicle, seat: THREE.Vector3) => { v.root.updateMatrixWorld(true); return v.body.localToWorld(seat.clone()); };
 /** steer: front wheels yaw and the steering wheel turns (~15:1 ratio); pass the same angle to the driver card's `steer` */
-export const steer = (v: Vehicle, angle: number) => { for (const w of v.front ?? []) w.rotation.y = angle; if (v.steering) v.steering.rotation.x = angle * 15 * 0.06; };
+export const steer = (v: Vehicle, angle: number) => { for (const w of v.front ?? []) w.rotation.y = angle; const sp = v.steering?.userData.spin as THREE.Object3D | undefined; if (sp) sp.rotation.x = angle * 15 * 0.9; };
+/** the two grip points on the 3D rim (ten-to-two, turned with the wheel), in WORLD space */
+export const gripPoints = (v: Vehicle) => {
+  const sp = v.steering?.userData.spin as THREE.Object3D | undefined, R = (v.steering?.userData.rimR as number) ?? 0.19;
+  if (!sp) return [];
+  v.root.updateMatrixWorld(true);
+  return [-1, 1].map((s) => sp.localToWorld(V(0, R * Math.cos(Math.PI / 3), s * R * Math.sin(Math.PI / 3))));
+};
+/** where the driver card must put its hands so they land ON the 3D rim from this camera: intersect the camera rays to
+ *  the grip points with the card plane, convert to the card's 600 x 1000 design units (soles at y 975). Pass the
+ *  result as FrontOpts.hands (sorted left -> right on screen). su = metres per design unit (cast.ts SU). */
+export const handTargets = (v: Vehicle, card: { pos: THREE.Vector3; yaw: number; scale: number }, cam: THREE.Vector3, su = 0.00216): [number, number][] => {
+  const n = V(Math.sin(card.yaw), 0, Math.cos(card.yaw)), right = V(Math.cos(card.yaw), 0, -Math.sin(card.yaw));
+  const out = gripPoints(v).map((h) => {
+    const d = h.clone().sub(cam), t = card.pos.clone().sub(cam).dot(n) / (d.dot(n) || 1e-6), P = cam.clone().addScaledVector(d, t);
+    const dl = P.sub(card.pos);
+    return [300 + dl.dot(right) / (su * card.scale), 975 - dl.y / (su * card.scale)] as [number, number];
+  });
+  return out.sort((a, b) => a[0] - b[0]);
+};
 /** a car to real dimensions (default family saloon 4.5 x 1.8 x 1.45 m, UK right-hand drive). Front at +x.
  *  Seat anchors are hip points: put a seated character card there (sit mode, scale 1): head ~1.2 m up, hands on the wheel. */
 export const car = (m: Mats, o: { L?: number; W?: number; H?: number } = {}): Vehicle => {
@@ -376,9 +395,18 @@ export const car = (m: Mats, o: { L?: number; W?: number; H?: number } = {}): Ve
   for (const dz of [-0.12, 0, 0.12]) { const pd = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.09, 0.07), m.trim); pd.position.set(xA - 0.22, h0 + 0.38, zd_ + dz); pd.rotation.z = -0.4; body.add(pd); }
   const zd = 0.38, xd = xa - 0.85;
   seat(xd, zd); seat(xd, -zd);
-  const sw = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.022, 10, 32), m.trim); sw.position.set(xa - 0.42, belt + 0.12, zd); sw.rotation.set(0, Math.PI / 2, 0); sw.rotateX(0); sw.rotation.z = 0.45; body.add(sw);
-  const hubw = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 16).rotateZ(Math.PI / 2 + 0.45), m.trim); hubw.position.copy(sw.position); body.add(hubw);
-  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.38, 10), m.trim); col.position.set(xa - 0.28, belt + 0.03, zd); col.rotation.z = 1.12; body.add(col);
+  // steering wheel ASSEMBLY fixed in the car: column out of the dash, wheel tilted 25 deg toward the driver's chest,
+  // 0.38 m diameter rim, 3 spokes, airbag hub. `spin` turns about the column axis (steer()). Hands are NOT drawn on the
+  // wheel: handTargets() gives the driver card the screen-projected rim points so its arms reach the real 3D rim.
+  const mount = new THREE.Group(); mount.position.set(xa - 0.4, belt + 0.085, zd); mount.rotation.z = -0.47; body.add(mount); // rim top ~ chin height of the seated driver
+  const spin = new THREE.Group(); mount.add(spin);
+  const rimR = 0.19, rimM = new THREE.Mesh(new THREE.TorusGeometry(rimR, 0.024, 12, 40).rotateY(Math.PI / 2), m.wheelGrip ?? m.trim); spin.add(rimM);
+  for (const a of [Math.PI / 2, -Math.PI / 2, Math.PI]) { const sp2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, rimR, 0.035), m.trim); sp2.position.set(0.01, Math.cos(a) * rimR / 2, Math.sin(a) * rimR / 2); sp2.rotation.x = a; spin.add(sp2); } // spokes at 3, 9 and 6 o'clock
+  const hubw = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.07, 0.07, 20).rotateZ(Math.PI / 2), m.trim); hubw.position.x = 0.03; spin.add(hubw);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(0.02, 12).rotateY(-Math.PI / 2), m.chrome ?? m.hub); badge.position.x = -0.006; spin.add(badge);
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.3, 12).rotateZ(Math.PI / 2), m.trim); col.position.x = 0.18; mount.add(col);
+  const shroud = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.12), m.interior); shroud.position.x = 0.24; mount.add(shroud);
+  const sw = mount; sw.userData.spin = spin; sw.userData.rimR = rimR;
   // ---- interior details seen through the glass: rear-view mirror, sun visors, glowing gauges, gear lever, belts
   const rvm = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.06, 0.22), m.trim); rvm.position.set(xa - 0.5, top - 0.1, 0); body.add(rvm);
   const rvg = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.05).rotateY(-Math.PI / 2), m.chrome ?? m.glass); rvg.position.set(xa - 0.52, top - 0.1, 0); body.add(rvg);

@@ -475,6 +475,9 @@ export type FrontOpts = {
   light?: number; facing?: -1 | 0 | 1; seed?: number;
   /** driving: steering-wheel turn in radians (prop "wheel", mode "sit"); belt = seatbelt across the chest */
   steer?: number; belt?: boolean;
+  /** driving with a REAL 3D wheel: where the hands go (design units, from realism.ts handTargets()); when given, the
+   *  arms reach these points and no wheel is drawn on the card (the 3D wheel sits in its real place in the car) */
+  hands?: [number, number][];
 };
 
 const footStroke = (p: Pen, a: P2, b: P2, w: number, col: string) => {
@@ -484,7 +487,7 @@ const footStroke = (p: Pen, a: P2, b: P2, w: number, col: string) => {
 
 export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
   const { phase = 0, expr = "neutral", mode = "march", look = 0, blink = false, lift = 60, prop = null, tilt = 0, headTilt = 0, wave,
-    light = DEF_LIGHT, facing = 0, seed = 1, steer = 0, belt = false } = opts;
+    light = DEF_LIGHT, facing = 0, seed = 1, steer = 0, belt = false, hands } = opts;
   const Bd = BUILD[o.build ?? "adult"], skin = o.skin ?? SKIN, two = Math.PI * 2, lid = lidOf(blink);
   const H = headBlob(seed, Bd.a, facing), W = 2 * H.a, HH = 2 * H.b, u = W / 100;
   const tall = (1 + Bd.torso + Bd.legs) * HH, sole = 975;
@@ -551,7 +554,7 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
   // driving: the wheel rim seen from the front (an ellipse in front of the chest), hands at ten-to-two turned by steer
   const WC: P2 = [tcx, chin + 0.36 * HH], WR = 1.05 * T.a, rimPt = (a: number): P2 => [WC[0] + WR * Math.cos(a), WC[1] + 0.42 * WR * Math.sin(a)];
   if (mode === "sit" && prop === "wheel") for (const side of [-1, 1]) {
-    const hnd = rimPt((side < 0 ? -Math.PI * 5 / 6 : -Math.PI / 6) + steer);
+    const hnd: P2 = hands && hands.length === 2 ? [hands[side < 0 ? 0 : 1][0], hands[side < 0 ? 0 : 1][1]] : rimPt((side < 0 ? -Math.PI * 5 / 6 : -Math.PI / 6) + steer);
     arms.push({ pts: [sh(side), [tcx + side * (1.05 * T.a + 6 * u), sh(side)[1] + 0.36 * HH], hnd], front: true });
   } else if (mode === "sit") for (const side of [-1, 1]) arms.push({ pts: [sh(side), [tcx + side * (1.1 * T.a + 6 * u), sh(side)[1] + 0.4 * HH], [tcx + side * (1.2 * T.a + 10 * u), torsoBot + 0.04 * HH]], front: false });
   else if (mode === "fall") for (const side of [-1, 1]) arms.push({ pts: [sh(side), [tcx + side * (1.15 * T.a + 12 * u), sh(side)[1] - 0.25 * HH], [tcx + side * (1.3 * T.a + 24 * u), sh(side)[1] - 0.68 * HH]], front: false });
@@ -631,7 +634,7 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
     if (o.sash) { const s = facing || 1; p.poly([[tcx + s * 0.55 * T.a, torsoBot - 0.3 * HH], [tcx + s * 0.75 * T.a, torsoBot + 0.05 * HH], [tcx + s * 0.45 * T.a, torsoBot + 0.02 * HH]], o.sash, 1.6 * u); }
     p.inkRing(tp, ow, thick);
   }
-  if (mode === "sit" && prop === "wheel") { // steering wheel: rim, three spokes turned with steer, hub (behind the hands)
+  if (mode === "sit" && prop === "wheel" && !hands) { // drawn wheel only when there is no 3D wheel (fallback)
     const rim: P2[] = []; for (let i = 0; i <= 48; i++) rim.push(rimPt((i / 48) * Math.PI * 2));
     p.stroke(rim, 9 * u, INK); p.stroke(rim, 5.5 * u, "#2a2830");
     for (const a of [Math.PI / 2, Math.PI * 7 / 6 - Math.PI / 3, -Math.PI / 6 + Math.PI / 3]) p.stroke([WC, rimPt(a + steer)], 4 * u, "#3a3840");

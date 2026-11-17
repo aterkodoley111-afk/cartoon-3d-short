@@ -274,13 +274,14 @@ Use `templates/real/realism.ts` (tested in `templates/real/RealTest.tsx`, sheet 
   cards per branch end (translucent, alpha-tested, NOINK), swaying in WIND (trunk barely, tips more, leaves flutter);
   grass = instanced textured blades (dark base, light tip) on a turf texture. All placement uses the integer hash in
   realism.ts: a sin() hash lines thousands of instances up into visible stripes.
-- **The driver** (sheet `templates/real/test_driver.jpg`): card in `mode: "sit"`, `prop: "wheel"`, `belt: true`,
-  `steer` = the same angle given to `steer(vehicle, a)` (front wheels yaw, wheel turns); place at
-  `seatWorld(v, v.seats.driver)` every frame (rides the suspension bob), sole at seat.y + 0.04, scale ~0.7; hide
-  `v.steering` (the card draws the wheel under its hands). Glass is a LIGHT tint (opacity ~0.42) or occupants turn
-  into silhouettes. Interior seen through the glass: low dashboard with glowing gauges, rear-view mirror, sun
-  visors, gear lever, seatbelts on the pillars, headliner. Hands on the wheel only show from the side window or an
-  inside 3/4 view: frame driving close-ups there, not straight through the windscreen.
+- **The driver** (sheets `templates/real/test_driver.jpg`, `test_steering.jpg`): the steering wheel is the REAL 3D
+  assembly in the car (column out of the dash, rim top at the seated driver's chin, tilted ~27 deg, spokes at 3/9/6,
+  hub) and stays visible; it is never drawn on the card (a billboard turns with the camera, so a drawn wheel floats
+  stuck to the chest). Every frame: place the card at `seatWorld(v, v.seats.driver)` (sole + 0.04, scale ~0.7), then
+  `hands = handTargets(v, {pos, yaw, scale}, camPos)` and draw the card with `{ mode: "sit", prop: "wheel", belt: true,
+  hands }`: the arms reach the screen-projected rim points, so the hands sit ON the 3D rim from any angle.
+  `steer(v, a)` turns the front wheels and the rim together (hands follow). Glass is a LIGHT tint (opacity ~0.42).
+  Interior through the glass: low dashboard, gauges, rear-view mirror, visors, gear lever, belts, headliner.
 - **Paint, glass and chrome reflect** the surroundings (`skyEnv()` in carMaterials; pass golden=true at sunset);
   cars sit on a soft contact shadow; tailpipe under the rear bumper.
 - **Occupants** sit on the vehicle's seat anchors (`v.seats.driver`, `v.seats.rows`) in sit mode, at scale 1, the
