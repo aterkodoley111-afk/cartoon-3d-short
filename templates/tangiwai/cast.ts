@@ -120,6 +120,9 @@ export type Place = {
   /** draw the card this far (m) toward the lens (scaled to keep its size on screen), so seats, cab walls or the car it
    *  stands in never slice through the flat card */
   pull?: number;
+  /** drawn over the set (no depth test), nearest last: people sitting on a bench seen from the aisle, whose flat card
+   *  would otherwise be cut by the cushion they sit on */
+  top?: boolean;
 };
 export type FxPlace = { key: string; cw: number; ch: number; draw: (p: Pen) => void; x: number; y: number; z: number; w: number; h: number; flat?: boolean; rot?: number; soft?: boolean; add?: boolean };
 /** sun = world direction TOWARD the sun (optional: when absent the scene's shadow-casting light is used) */
@@ -286,10 +289,18 @@ const splashAt = (out: Stage, cam: CamInfo, key: string, u: number, x: number, y
   void fxSplash;
 };
 const seatedAt = (out: Stage, cam: CamInfo, who: Who, x: number, y: number, z: number, fo: FrontOpts, t: number, scale = 1, pull = 0.45) => {
-  front(out, cam, who, x, y, z, { mode: "sit", ...fo }, t, scale, 0);
+  front(out, cam, who, x, y, z, { mode: "sit", seatH: 230, breath: t * 0.3 + who.i * 0.17, ...fo }, t, scale, 0);
   out.places[out.places.length - 1].pull = pull;
 };
 const pullLast = (out: Stage, d: number) => { out.places[out.places.length - 1].pull = d; };
+/** a seated profile on a bench: face = +1 facing +z, -1 facing -z; drawn over the seat (top), swaying with the train */
+const sideSit = (out: Stage, cam: CamInfo, who: Who, x: number, z: number, face: number, so: SideOpts, t: number, scale: number, sway: number, bump: number) => {
+  const v = viewOf(cam, x, z, 0, face);
+  // facing the lens: the seated front pose (knees toward us, hands on the lap or talking); otherwise the profile
+  const fo: FrontOpts = { mode: "sit", seatH: 230, expr: so.expr, breath: so.breath, talk: so.talk, headTilt: so.nod ? so.nod * 0.5 : 0, prop: so.hold === "present" ? "present" : null, handsOn: "lap", blink: lidAt(t, who.i), look: 0 };
+  const pl = person(cam, who, x, bump, z, { side: v.side, mirror: v.mirror }, fo, { mode: "sit", seatH: 230, blink: lidAt(t, who.i), ...so }, scale);
+  pl.roll = sway; pl.pull = 0.42; out.places.push(pl);
+};
 
 export const stage = (id: number, t: number, f: number, cam: CamInfo): Stage => {
   const out: Stage = { places: [], fx: [], bursts: [] };
@@ -318,11 +329,15 @@ export const stage = (id: number, t: number, f: number, cam: CamInfo): Stage => 
     }
     case "express": {
       if (set === "car") {
-        // passengers going home for Christmas: one bay (rows k = 1 facing +z, k = 2 facing -z), seen from the aisle
+        // passengers going home for Christmas: one bay (row 1 faces +z, row 2 faces -z), seen side-on from the aisle:
+        // real seated profiles (hips on the cushion, thighs level, feet on the floor, backs against the seat), breathing,
+        // swaying with the carriage, talking, laughing, a kid bouncing with his present
         const [x, , z] = CAR_INT, row = (k: number) => z - 8.2 + 0.9 + k * 1.3;
-        seatedAt(out, cam, P(20, pass53(1), "w1"), x - 0.95, 0, row(1) + 0.05, { expr: "smile", prop: "present", look: 1 }, t, 0.97);
-        seatedAt(out, cam, P(21, kid53(0), "k1"), x - 0.55, 0, row(1) + 0.08, { expr: "grin", prop: "present", look: 1 }, t, 0.92);
-        seatedAt(out, cam, P(22, pass53(0), "m1"), x - 0.75, 0, row(2) - 0.05, { expr: "laugh", look: -1 }, t);
+        const sway = 0.012 * Math.sin(t * 2.3) + 0.006 * Math.sin(t * 5.1), bump = 0.006 * Math.abs(Math.sin(t * 7.3));
+        const talkW = (t * 1.7) % 1, wSpeak = Math.sin(t * 13) > -0.2;
+        // a mother (talking, a present on her lap) and her boy opposite (bouncing, hugging his present), aisle seats
+        sideSit(out, cam, P(20, pass53(1), "w1"), x - 0.55, row(1) + 0.02, 1, { expr: wSpeak ? "laugh" : "smile", talk: talkW, breath: t * 0.28, nod: 3 * Math.sin(t * 4), lean: -4 }, t, 0.98, sway, bump);
+        sideSit(out, cam, P(21, kid53(0), "k1"), x - 0.55, row(2) - 0.02, -1, { expr: "grin", hold: "present", breath: t * 0.35 + 0.3, nod: -4 + 6 * Math.abs(Math.sin(t * 6)), lean: 3 }, t, 0.92, sway, bump + 0.03 * Math.abs(Math.sin(t * 6)));
       }
       break;
     }
@@ -426,10 +441,10 @@ export const stage = (id: number, t: number, f: number, cam: CamInfo): Stage => 
         front(out, cam, P(1, ELLIS, "ellis"), REST6[0] + 1.6, top, zc, { mode: "stand", expr: "stern", prop: "reach", look: 1 }, t); pullLast(out, 0.2);
         front(out, cam, P(40, pass53(9), "pw"), REST6[0] + 2.4, top, REST6[2] - 1.2 - 0.3 * (1 - pull), { mode: "stand", expr: pull > 0.6 ? "relief" : "pained", prop: "armsUp", look: -1 }, t, 1, 0); pullLast(out, 0.2);
         front(out, cam, P(41, HOLMAN, "holman"), REST6[0] + 3.6, top, REST6[2] - 1.0, { mode: "stand", expr: "stern", prop: "reach", look: -1 }, t, 1, 0); pullLast(out, 0.2);
-        seatedAt(out, cam, P(42, pass53(10), "h1"), REST6[0] - 1.2, top, zc + 0.3, { expr: "dazed", look: 1 }, t);
-        seatedAt(out, cam, P(43, kid53(3), "h2"), REST6[0] - 2.1, top, zc - 0.2, { expr: "pained", look: 1 }, t, 0.95);
-        seatedAt(out, cam, P(44, pass53(11), "h3"), REST6[0] - 3.2, top, zc + 0.2, { expr: "nervous", look: 1 }, t);
-        seatedAt(out, cam, P(45, pass53(12), "h4"), REST6[0] - 4.3, top, zc - 0.1, { expr: "dazed", look: 1 }, t);
+        seatedAt(out, cam, P(42, pass53(10), "h1"), REST6[0] - 1.2, top, zc + 0.3, { seatH: 70, handsOn: "lap", expr: "dazed", look: 1 }, t);
+        seatedAt(out, cam, P(43, kid53(3), "h2"), REST6[0] - 2.1, top, zc - 0.2, { seatH: 70, handsOn: "lap", expr: "pained", look: 1 }, t, 0.95);
+        seatedAt(out, cam, P(44, pass53(11), "h3"), REST6[0] - 3.2, top, zc + 0.2, { seatH: 70, handsOn: "lap", expr: "nervous", look: 1 }, t);
+        seatedAt(out, cam, P(45, pass53(12), "h4"), REST6[0] - 4.3, top, zc - 0.1, { seatH: 70, handsOn: "lap", expr: "dazed", look: 1 }, t);
         front(out, cam, P(46, pass53(13), "h5"), REST6[0] - 5.5, top, zc, { mode: "stand", expr: "nervous", look: 1 }, t); pullLast(out, 0.2);
       }
       for (let k = 0; k < 3; k++) { const ph = ((t * 0.06 + k * 0.33) % 1); soft(out, cam, "mist", "110,124,170", 0.5, 0.14, REST6[0] - 14 + 9 * k, -0.5, REST6[2] - 8 - 5 * ph, 20, 10); }

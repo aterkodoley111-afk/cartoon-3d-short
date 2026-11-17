@@ -6,6 +6,7 @@
 // update(id, f, camera) poses everything for shot `id` at frame f (a pure function of id + f).
 import * as THREE from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { Batch, boxGeo, V, lam, setSight, Kit, Ray, quad } from "./build";
 import { ctex, rep, planksHD, cloudHD } from "./paint";
 import { LIGHTS, LOOK, LightPreset, LightName } from "./lights";
@@ -105,10 +106,31 @@ const nightGlass = () => ctex("nightGlass", 128, 128, (g) => {
   const gr = g.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, "#26345a"); gr.addColorStop(1, "#141a2e"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
   g.fillStyle = "rgba(255,240,200,0.22)"; g.beginPath(); g.moveTo(20, 128); g.lineTo(60, 0); g.lineTo(78, 0); g.lineTo(38, 128); g.fill();
 });
-const seatTex = () => ctex("seatCloth", 256, 256, (g, r) => {
-  g.fillStyle = "#6e2e30"; g.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 300; i++) { g.fillStyle = r() > 0.5 ? "rgba(255,200,180,0.06)" : "rgba(0,0,0,0.1)"; g.fillRect(r() * 256, r() * 256, 3, 3); }
-  g.strokeStyle = "rgba(30,8,8,0.5)"; g.lineWidth = 3; for (let x = 32; x < 256; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 256); g.stroke(); }
+/** 1950s first-class moquette: deep red cut pile, diamond-tufted with buttons, soft wear highlights */
+const seatTex = () => ctex("seatCloth", 512, 512, (g, r) => {
+  g.fillStyle = "#7a2a2c"; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 6000; i++) { g.fillStyle = r() > 0.5 ? "rgba(255,190,170,0.07)" : "rgba(20,0,0,0.12)"; g.fillRect(r() * 512, r() * 512, 2, 2); }
+  for (let y = 0; y < 512; y += 64) for (let x = (y / 64) % 2 ? 32 : 0; x < 544; x += 64) {
+    const gr = g.createRadialGradient(x, y, 2, x, y, 40); gr.addColorStop(0, "rgba(20,0,0,0.5)"); gr.addColorStop(0.25, "rgba(20,0,0,0.12)"); gr.addColorStop(1, "rgba(255,200,180,0.06)");
+    g.fillStyle = gr; g.fillRect(x - 40, y - 40, 80, 80);
+    g.fillStyle = "#3a1012"; g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill();
+    g.strokeStyle = "rgba(30,5,5,0.35)"; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 32, y + 32); g.moveTo(x, y); g.lineTo(x - 32, y + 32); g.stroke();
+  }
+});
+const curtainTex = () => ctex("curtain", 128, 256, (g, r) => {
+  g.fillStyle = "#c9a45a"; g.fillRect(0, 0, 128, 256);
+  for (let x = 0; x < 128; x += 16) { const gr = g.createLinearGradient(x, 0, x + 16, 0); gr.addColorStop(0, "rgba(80,50,10,0.35)"); gr.addColorStop(0.5, "rgba(255,240,200,0.25)"); gr.addColorStop(1, "rgba(80,50,10,0.35)"); g.fillStyle = gr; g.fillRect(x, 0, 16, 256); }
+  for (let i = 0; i < 400; i++) { g.fillStyle = "rgba(255,255,255,0.05)"; g.fillRect(r() * 128, r() * 256, 1, 4); }
+});
+const runnerTex = () => ctex("runner", 256, 512, (g, r) => {
+  g.fillStyle = "#4a2a3a"; g.fillRect(0, 0, 256, 512);
+  for (let i = 0; i < 3000; i++) { g.fillStyle = r() > 0.5 ? "rgba(255,220,200,0.06)" : "rgba(0,0,0,0.1)"; g.fillRect(r() * 256, r() * 512, 2, 2); }
+  g.fillStyle = "#b08a3a"; g.fillRect(14, 0, 8, 512); g.fillRect(234, 0, 8, 512);
+  g.strokeStyle = "rgba(200,160,80,0.4)"; g.lineWidth = 3; for (let y = 0; y < 512; y += 64) { g.beginPath(); g.moveTo(128, y + 8); g.lineTo(160, y + 32); g.lineTo(128, y + 56); g.lineTo(96, y + 32); g.closePath(); g.stroke(); }
+});
+const netTex = () => ctex("rackNet", 128, 128, (g) => {
+  g.clearRect(0, 0, 128, 128); g.strokeStyle = "#5a4630"; g.lineWidth = 3;
+  for (let k = -128; k < 256; k += 16) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k + 128, 128); g.stroke(); g.beginPath(); g.moveTo(k + 128, 0); g.lineTo(k, 128); g.stroke(); }
 });
 const tileTex = () => ctex("tiles", 512, 512, (g) => {
   g.fillStyle = "#cfe3e6"; g.fillRect(0, 0, 512, 512);
@@ -558,7 +580,13 @@ export class World {
         b.add(boxGeo(V(wx - s * 0.08 - 0.04, 0.92, zz + 0.3), V(wx - s * 0.08 + 0.04, 0.97, zz + 1.2)), lam("sill", () => ({ color: "#6a3c20" })));
       }
       // luggage rack + Christmas garland
-      thin.add(boxGeo(V(wx - s * 0.42 - 0.2, 1.95, z - L), V(wx - s * 0.42 + 0.2, 1.98, z + L)), lam("rack", () => ({ color: "#c9a24a" })));
+      for (const dxr of [0.24, 0.62]) thin.add(new THREE.CylinderGeometry(0.016, 0.016, 2 * L, 8).rotateX(Math.PI / 2), twoTone(new THREE.MeshPhongMaterial({ color: "#c9a24a", specular: "#fff2c0", shininess: 90 })), new THREE.Matrix4().makeTranslation(wx - s * dxr, 1.97, z));
+      thin.add(quad(V(wx - s * 0.24, 1.96, z - L), V(wx - s * 0.62, 1.96, z - L), V(wx - s * 0.62, 1.96, z + L), V(wx - s * 0.24, 1.96, z + L), 1, 30), lam("rackNet", () => ({ map: rep(netTex(), 1, 1), transparent: true, alphaTest: 0.4, side: THREE.DoubleSide })));
+      for (let zz = z - L; zz < z + L - 0.1; zz += 1.2) for (const cz of [zz + 0.38, zz + 1.08]) {
+        const cg = new THREE.PlaneGeometry(0.12, 0.85, 1, 6), pp2 = cg.attributes.position; for (let k2 = 0; k2 < pp2.count; k2++) pp2.setZ(k2, 0.02 * Math.sin(pp2.getY(k2) * 9));
+        cg.rotateY(s < 0 ? Math.PI / 2 : -Math.PI / 2);
+        b.add(cg, lam("curtain", () => ({ map: curtainTex(), side: THREE.DoubleSide })), new THREE.Matrix4().makeTranslation(wx - s * 0.09, 1.38, cz));
+      }
     }
     // ceiling (arched)
     const ceil = new THREE.CylinderGeometry(1.7, 1.7, 2 * L, 24, 1, true, -0.9, 1.8); ceil.rotateZ(Math.PI / 2); ceil.rotateX(-Math.PI / 2); ceil.rotateY(Math.PI / 2);
@@ -572,18 +600,29 @@ export class World {
       if (s > 0) b.add(quad(V(x - 0.45, 0, ez), V(x + 0.45, 0, ez), V(x + 0.45, 1.95, ez), V(x - 0.45, 1.95, ez)), lam("doorGlass", () => ({ map: nightGlass(), side: THREE.DoubleSide })));
     }
     // seats: benches facing each other, both sides of the aisle
-    const cloth = lam("seatCloth", () => ({ map: rep(seatTex(), 1, 1) })), frame = lam("seatFrame", () => ({ color: "#4a3020" }));
+    // seats: upholstered benches facing each other in bays (real 1950s NZR first class: 0.45 m seat height, 0.5 m
+    // deep cushions, tufted moquette, polished wood frames, an armrest at the aisle end, a brass grab rail on the back)
+    const cloth = lam("seatCloth", () => ({ map: rep(seatTex(), 1, 1) })), frame = twoTone(new THREE.MeshPhongMaterial({ color: "#5a3420", specular: "#8a6a4a", shininess: 60 }));
+    const brassM = twoTone(new THREE.MeshPhongMaterial({ color: "#c9a24a", specular: "#fff2c0", shininess: 90 }));
     for (let k = 0; k < 12; k++) {
       const zc = z - L + 0.9 + k * 1.3, face = k % 2 ? 1 : -1;
       for (const s of [-1, 1]) {
-        const xa = s < 0 ? x - hw + 0.05 : x + 0.32, xb = s < 0 ? x - 0.32 : x + hw - 0.05;
-        b.add(boxGeo(V(xa, 0.0, zc - 0.25), V(xb, 0.42, zc + 0.25)), frame);
-        b.add(boxGeo(V(xa, 0.42, zc - 0.27), V(xb, 0.52, zc + 0.27)), cloth);
+        const xa = s < 0 ? x - hw + 0.05 : x + 0.32, xb = s < 0 ? x - 0.32 : x + hw - 0.05, wx2 = xb - xa, xm = (xa + xb) / 2;
+        b.add(boxGeo(V(xa + 0.02, 0.0, zc - 0.22), V(xb - 0.02, 0.36, zc + 0.22)), frame);
+        b.add(boxGeo(V(xa, 0.32, zc - 0.25), V(xb, 0.37, zc + 0.27)), frame);
+        b.add(new RoundedBoxGeometry(wx2 - 0.02, 0.12, 0.54, 3, 0.05), cloth, new THREE.Matrix4().makeTranslation(xm, 0.44, zc + face * 0.02));
         const bz = zc - face * 0.3;
-        b.add(boxGeo(V(xa, 0.52, bz - 0.07), V(xb, 1.2, bz + 0.07)), cloth);
-        b.add(boxGeo(V(xa, 1.2, bz - 0.09), V(xb, 1.26, bz + 0.09)), frame);
+        b.add(new RoundedBoxGeometry(wx2 - 0.02, 0.72, 0.13, 3, 0.05), cloth, new THREE.Matrix4().makeRotationX(face * 0.1).setPosition(xm, 0.88, bz + face * 0.03));
+        b.add(new RoundedBoxGeometry(wx2, 0.07, 0.18, 2, 0.03), frame, new THREE.Matrix4().makeTranslation(xm, 1.27, bz));
+        thin.add(new THREE.CylinderGeometry(0.018, 0.018, wx2 - 0.12, 10).rotateZ(Math.PI / 2), brassM, new THREE.Matrix4().makeTranslation(xm, 1.36, bz));
+        for (const e of [xa + 0.06, xb - 0.06]) thin.add(new THREE.CylinderGeometry(0.014, 0.014, 0.08, 8), brassM, new THREE.Matrix4().makeTranslation(e, 1.32, bz));
+        const ax = s < 0 ? xb - 0.03 : xa + 0.03; // armrest at the aisle end
+        b.add(new RoundedBoxGeometry(0.07, 0.07, 0.42, 2, 0.03), frame, new THREE.Matrix4().makeTranslation(ax, 0.66, zc));
+        b.add(boxGeo(V(ax - 0.03, 0.37, zc + 0.12), V(ax + 0.03, 0.66, zc + 0.17)), frame);
       }
     }
+    // a carpet runner down the aisle
+    b.add(quad(V(x - 0.3, 0.004, z + L), V(x + 0.3, 0.004, z + L), V(x + 0.3, 0.004, z - L), V(x - 0.3, 0.004, z - L), 1, 16), lam("runner", () => ({ map: rep(runnerTex(), 1, 1) })));
     // suitcases and presents on the racks
     const caseM = [lam("case0", () => ({ color: "#8a5a34" })), lam("case1", () => ({ color: "#3a4a6a" })), lam("gift0", () => ({ color: "#c8343a" })), lam("gift1", () => ({ color: "#2f8a4a" }))];
     for (let k = 0; k < 14; k++) for (const s of [-1, 1]) {
@@ -594,7 +633,10 @@ export class World {
     b.build(g, false);
     const tg = new THREE.Group(); thin.build(tg, false); tg.traverse((o) => o.layers.set(NOINK)); g.add(tg);
     // ceiling lamps (self-lit globes)
-    for (let zz = z - L + 1.2; zz < z + L; zz += 2.4) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.11, 14, 10), glow("carLamp", [1.7, 1.45, 1.0])); m.position.set(x, top + 0.28, zz); g.add(m); }
+    for (let zz = z - L + 1.2; zz < z + L; zz += 2.4) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 18, 12, 0, Math.PI * 2, Math.PI * 0.25, Math.PI * 0.75), glow("carLamp", [1.5, 1.3, 0.95])); m.position.set(x, top + 0.24, zz); g.add(m);
+      const fit = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.06, 16), twoTone(new THREE.MeshPhongMaterial({ color: "#c9a24a", specular: "#fff2c0", shininess: 90 }))); fit.position.set(x, top + 0.36, zz); g.add(fit);
+    }
   }
   private buildBath() {
     const [x, , z] = BATH, b = new Batch(), g = this.bathSet;
@@ -967,6 +1009,7 @@ export class World {
       let scK = 1;
       if (p.pull) { const d = this.v.copy(cam.position).sub(a.mesh.position), L = Math.hypot(d.x, d.z); if (L > p.pull + 0.3) { a.mesh.position.x += (d.x / L) * p.pull; a.mesh.position.z += (d.z / L) * p.pull; scK = (L - p.pull) / L; a.mesh.position.y = cam.position.y + (p.y - cam.position.y) * scK; } }
       a.mesh.scale.set((p.mirror ? -sc2 : sc2) * scK, sc2 * scK, sc2 * scK);
+      a.mat.depthTest = !p.top; a.mesh.renderOrder = p.top ? 3 + 1 / Math.max(0.5, cam.position.distanceTo(a.mesh.position)) : 1;
       a.mesh.castShadow = L.actorShadow;
     }
     for (let i = ai; i < this.actors.length; i++) this.actors[i].mesh.visible = false;

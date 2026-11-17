@@ -152,7 +152,7 @@ const S1a = (f: number) => dolly([58, 7, -44], [12, -2, 12], pushK(f, 0, 0.0028,
 const S1b = (f: number) => dolly([70, 3.0, -30], lerp3([60, 3, -30], MTN, 0.05), pushK(f, MTN_AT, 0.003), { fov: 38 });
 // 2 the express on the plain (aerial, tracking the engine), then inside a carriage
 const S2a = (f: number) => { const x = cruiseX(T(f)); return { pos: [x + 34, 34, -92] as V3, look: [x + 4, 2, 10] as V3, fov: 46, roll: -0.02 }; };
-const S2b = (f: number) => dolly(add(CAR_INT, [1.22, 1.5, -5.3]), add(CAR_INT, [-0.8, 0.9, -5.35]), pushK(f, INT_AT, 0.0025, 0.005, 25), { fov: 72 });
+const S2b = (f: number) => dolly(add(CAR_INT, [1.25, 1.22, -5.35]), add(CAR_INT, [-0.6, 0.9, -5.28]), pushK(f, INT_AT, 0.0015, 0.003, 25), { fov: 80 });
 // 3 the river under the bridge: a trickle, a clear sky
 const S3a = (f: number) => dolly([4, -4.6, -26], [-3, 3.5, 40], pushK(f, W(29), 0.0026), { fov: 50, roll: 0.03 });
 // 4 the summit: the lake behind its wall of ash, then the wall

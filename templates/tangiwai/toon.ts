@@ -471,6 +471,8 @@ const BUILD: Record<Build, { a: number; torso: number; legs: number; tw: number 
 
 export type FrontOpts = {
   phase?: number; expr?: Expr; mode?: "march" | "stroll" | "stand" | "sit" | "fall"; look?: number; blink?: boolean | number; lift?: number;
+  /** sit: seat height above the floor in design units (0.45 m = 208); breath 0..1 phase of a breath (chest rise) */
+  seatH?: number; breath?: number; talk?: number; handsOn?: "knees" | "lap";
   prop?: Prop; tilt?: number; headTilt?: number; wave?: number;
   /** canvas angle the key light comes FROM (painted crescent + thick outline side) */
   light?: number; facing?: -1 | 0 | 1; seed?: number;
@@ -489,7 +491,8 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
   const tall = (1 + Bd.torso + Bd.legs) * HH, sole = 975;
   // body bob 5 % (march) / 3 % (stroll) of the height, lowest at contact (phase 0 and 0.5)
   const bob = mode === "march" ? 0.025 * tall * Math.cos(2 * two * phase) : mode === "stroll" ? 0.015 * tall * Math.cos(2 * two * phase) : 0;
-  const torsoBot = mode === "sit" ? sole - 0.2 * HH : sole - Bd.legs * HH + bob;
+  const seatH = opts.seatH ?? 208 * (o.build === "kid" ? 0.8 : 1), br = 0.012 * HH * Math.sin(2 * Math.PI * (opts.breath ?? 0));
+  const torsoBot = mode === "sit" ? sole - seatH + 0.1 * HH - br * 0.3 : sole - Bd.legs * HH + bob;
   const chin = torsoBot - Bd.torso * HH, hc = chin - H.b, crown = hc - H.b, hipY = torsoBot - 0.12 * HH;
   const thick = thickAngle(light), ow = 5 * u;
   const legCol = mix(o.pants, INK, 0.55), armCol = mix(o.jacket, INK, 0.5), footCol = o.boots;
@@ -497,11 +500,17 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
   // ---- legs + feet (not rotated) ----
   p.rot = null;
   if (mode === "sit") {
+    // seated, facing us: thighs come toward the lens (foreshortened to rounded knees at seat height), shins drop to the
+    // floor, feet planted a little apart and turned out; a dress drapes over the knees
+    const kneeY = sole - seatH + 0.06 * HH, kneeR = 0.15 * HH;
     for (const side of [-1, 1]) {
-      const h: P2 = [300 + side * 15 * u, hipY], k: P2 = [300 + side * 36 * u, hipY + 0.2 * HH], f: P2 = [300 + side * 44 * u, sole - 8 * u];
-      p.stroke(curve(h, k, f), legW, legCol);
-      footStroke(p, [f[0] - side * 2 * u, f[1]], [f[0] + side * 12 * u, f[1] - 5 * u], footW, footCol);
+      const kx = 300 + side * (o.build === "stout" ? 30 : 24) * u, fx = kx + side * 5 * u;
+      p.stroke([[kx, kneeY + kneeR * 0.4], [kx + side * u, (kneeY + sole) / 2], [fx, sole - 6 * u]], legW * 1.15, legCol);
+      footStroke(p, [fx - side * 4 * u, sole - 5 * u], [fx + side * 10 * u, sole - 1 * u], footW * 1.1, footCol);
     }
+    const kneeFill = o.dress ?? o.pants;
+    for (const side of [-1, 1]) { const kx = 300 + side * (o.build === "stout" ? 30 : 24) * u; p.ell(kx, kneeY, kneeR * 1.05, kneeR * 0.82, kneeFill, ow * 0.9); }
+    if (o.dress) p.poly([[300 - 52 * u, kneeY - kneeR * 0.4], [300 + 52 * u, kneeY - kneeR * 0.4], [300 + 46 * u, kneeY + kneeR * 1.3], [300 - 46 * u, kneeY + kneeR * 1.3]], o.dress, ow * 0.9);
   } else if (mode === "fall") {
     const legs: [P2, P2, P2][] = [
       [[300 - 15 * u, hipY], [300 - 46 * u, hipY + 0.5 * HH], [300 - 70 * u, hipY + 0.72 * HH]],
@@ -547,12 +556,22 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
   const rifle = !!o.rifle && (mode === "march" || mode === "stand" || mode === "stroll");
   type Arm = { pts: [P2, P2, P2]; front: boolean };
   const arms: Arm[] = [];
-  if (mode === "sit") for (const side of [-1, 1]) arms.push({ pts: [sh(side), [tcx + side * (1.1 * T.a + 6 * u), sh(side)[1] + 0.4 * HH], [tcx + side * (1.2 * T.a + 10 * u), torsoBot + 0.04 * HH]], front: false });
+  if (mode === "sit" && !prop) {
+    const kneeY = sole - seatH + 0.06 * HH, lap = opts.handsOn === "lap";
+    for (const side of [-1, 1]) {
+      const talking = side > 0 && (opts.talk ?? 0) > 0, tk = opts.talk ?? 0;
+      const hand: P2 = talking ? [tcx + side * (0.9 * T.a + 14 * u) + 6 * u * Math.sin(tk * 6.28), chin + 0.45 * HH - 10 * u * Math.abs(Math.sin(tk * 6.28))]
+        : lap ? [tcx + side * 0.3 * T.a, kneeY - 0.1 * HH] : [300 + side * 24 * u, kneeY - 0.08 * HH];
+      const S = sh(side);
+      arms.push({ pts: [S, [tcx + side * (1.08 * T.a + 6 * u), (S[1] + hand[1]) / 2 + (talking ? 0.12 * HH : 0)], hand], front: true });
+    }
+  }
   else if (mode === "fall") for (const side of [-1, 1]) arms.push({ pts: [sh(side), [tcx + side * (1.15 * T.a + 12 * u), sh(side)[1] - 0.25 * HH], [tcx + side * (1.3 * T.a + 24 * u), sh(side)[1] - 0.68 * HH]], front: false });
   else {
     if (prop === "armsUp") {
       for (const side of [-1, 1]) arms.push({ pts: [sh(side), [tcx + side * (1.15 * T.a + 12 * u), sh(side)[1] - 0.3 * HH + 6 * u * sw * side], [tcx + side * (1.25 * T.a + 18 * u), sh(side)[1] - 0.75 * HH + 8 * u * sw * side]], front: false });
-    } else arms.push({ pts: prop === "shako" ? hang(-1, 0) : prop === "bucket" ? hang(-1, 0.6) : hang(-1, -sw), front: false });
+    } else if (mode === "sit") arms.push({ pts: [sh(-1), [tcx - (1.08 * T.a + 6 * u), sh(-1)[1] + 0.42 * HH], [300 - 24 * u, sole - seatH - 0.02 * HH]], front: true });
+    else arms.push({ pts: prop === "shako" ? hang(-1, 0) : prop === "bucket" ? hang(-1, 0.6) : hang(-1, -sw), front: false });
     if (prop === "armsUp") { /* both arms placed above */ }
     else if (prop === "point") {
       const S = sh(1);
@@ -746,7 +765,10 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
 };
 
 export type SideOpts = {
-  phase?: number; expr?: Expr; mode?: "march" | "stand" | "swing" | "push"; blink?: boolean | number; stomp?: number; pose?: number;
+  phase?: number; expr?: Expr; mode?: "march" | "stand" | "swing" | "push" | "sit"; blink?: boolean | number; stomp?: number; pose?: number;
+  /** sit (profile, facing +x): seat height (design units), a breath phase, a talking hand 0..1 cycle, a head nod (deg),
+   *  something held on the lap */
+  seatH?: number; breath?: number; talk?: number; nod?: number; hold?: "present" | "book" | null; lean?: number;
   /** step length as a multiple of 0.8 m (370 units): matches 1.6 m/s at 2 steps/s; scale by the view's foreshortening */
   stride?: number; light?: number; seed?: number;
   /** push mode: where the hands land at pose 1, in final canvas units (e.g. the swing kid's back) */
@@ -802,15 +824,22 @@ export const bodySide = (p: Pen, o: Outfit, opts: SideOpts) => {
       const knee: P2 = [300 + l1 * 0.98 + dx * u, hipY + 6 * u];
       legs.push({ ank: [knee[0] + l2 * Math.sin(a), knee[1] + l2 * Math.cos(a)], pitch: -a * 0.5, near });
     }
+  } else if (mode === "sit") {
+    // on a bench seen side-on: hips on the cushion, thighs forward and level, shins down to feet flat on the floor
+    hipY = sole - (opts.seatH ?? 208 * (o.build === "kid" ? 0.8 : 1));
+    legs.push({ ank: [300 + 0.98 * l1 - 8 * u, ankY], pitch: 0, near: false }, { ank: [300 + 0.98 * l1 + 4 * u, ankY], pitch: 0, near: true });
+    lean = (opts.lean ?? -5) + 1.2 * Math.sin(2 * Math.PI * (opts.breath ?? 0));
   } else {
     legs.push({ ank: [300 - 4 * u, ankY], pitch: 0, near: false }, { ank: [300 + 4 * u, ankY], pitch: 0, near: true });
   }
   const torsoBot = hipY + 0.12 * HH, chin = torsoBot - Bd.torso * HH, hc = chin - H.b, crown = hc - H.b, hip: P2 = [300, hipY];
   p.rot = null;
   for (const L of legs) {
-    const knee = mode === "swing" ? ([300 + l1 * 0.98 + (L.near ? 0 : -6 * u), hipY + 6 * u] as P2) : ik(hip, L.ank, l1, l2);
+    const knee = mode === "swing" ? ([300 + l1 * 0.98 + (L.near ? 0 : -6 * u), hipY + 6 * u] as P2)
+      : mode === "sit" ? ([L.ank[0] + 2 * u, hipY + 4 * u] as P2) : ik(hip, L.ank, l1, l2);
     const hp0: P2 = [300 + (L.near ? 0 : -5 * u), hipY];
-    p.stroke([hp0, knee, L.ank], 5.8 * u, L.near ? nearCol : farCol);
+    if (mode === "sit") { p.stroke([hp0, knee], 9 * u, L.near ? nearCol : farCol); p.stroke([knee, L.ank], 6 * u, L.near ? nearCol : farCol); }
+    else p.stroke([hp0, knee, L.ank], 5.8 * u, L.near ? nearCol : farCol);
     const c = Math.cos(L.pitch), s = Math.sin(L.pitch);
     footStroke(p, [L.ank[0] - 3 * u * c, L.ank[1] - 3 * u * s], [L.ank[0] + 13 * u * c, L.ank[1] + 13 * u * s + 0.5 * u],
       7.5 * u, L.near ? footCol : footCol === INK ? INK : shade(footCol, 0.82));
@@ -841,6 +870,14 @@ export const bodySide = (p: Pen, o: Outfit, opts: SideOpts) => {
     }
     near = [S, [(S[0] + hN[0]) / 2, (S[1] + hN[1]) / 2 + 0.06 * HH], hN];
     far = [S, [(S[0] + hN[0]) / 2 - 4 * u, (S[1] + hN[1]) / 2 - 0.02 * HH], [hN[0] - 6 * u, hN[1] - 0.08 * HH]];
+  } else if (mode === "sit") {
+    // inside the lean rotation: undo it for targets given in seat space
+    const th = -rad(lean), toBody = (q2: P2): P2 => { const dx = q2[0] - 300, dy = q2[1] - hipY; return [300 + dx * Math.cos(th) - dy * Math.sin(th), hipY + dx * Math.sin(th) + dy * Math.cos(th)]; };
+    const tk = opts.talk ?? 0, lapH = toBody([300 + 0.55 * l1, hipY - 0.06 * HH]);
+    const nearH: P2 = opts.hold ? toBody([300 + 0.5 * l1, hipY - 0.2 * HH]) : tk > 0 ? [S[0] + 0.5 * HH + 8 * u * Math.sin(tk * 6.28), S[1] + 0.12 * HH - 14 * u * Math.abs(Math.sin(tk * 6.28 * 0.5))] : lapH;
+    near = [S, [(S[0] + nearH[0]) / 2 - 6 * u, (S[1] + nearH[1]) / 2 + 0.16 * HH], nearH];
+    const farH = opts.hold ? toBody([300 + 0.62 * l1, hipY - 0.22 * HH]) : toBody([300 + 0.42 * l1, hipY - 0.04 * HH]);
+    far = [S, [(S[0] + farH[0]) / 2 - 8 * u, (S[1] + farH[1]) / 2 + 0.14 * HH], farH];
   } else if (rifle) { near = [S, [S[0] - 4 * u, S[1] + 0.42 * HH], B0]; far = mode === "march" ? swingArm(rad(30) * nearFwd) : swingArm(0); }
   else { near = swingArm(rad(-30) * nearFwd); far = mode === "march" ? swingArm(rad(30) * nearFwd) : null; }
   if (far) { p.stroke(curve(far[0], far[1], far[2]), 5.2 * u, farArm); p.dot(far[2][0], far[2][1], 5.5 * u); }
@@ -856,8 +893,20 @@ export const bodySide = (p: Pen, o: Outfit, opts: SideOpts) => {
     p.band([lerp2(B0, B1, 0.6), B1], "#8d949c", 2.4 * u, 1.2 * u, "round");
   }
   p.stroke(curve(near[0], near[1], near[2]), 5.2 * u, armCol); p.dot(near[2][0], near[2][1], 5.5 * u);
+  if (mode === "sit" && opts.hold) {
+    const [bx, by] = near[2];
+    if (opts.hold === "present") {
+      p.poly(rrect(bx - 26 * u, by - 34 * u, bx + 22 * u, by + 6 * u, 3 * u), "#c8343a", 2.4 * u);
+      p.poly([[bx - 6 * u, by - 34 * u], [bx + 2 * u, by - 34 * u], [bx + 2 * u, by + 6 * u], [bx - 6 * u, by + 6 * u]], "#f0c64a", 0);
+      p.poly([[bx - 26 * u, by - 18 * u], [bx + 22 * u, by - 18 * u], [bx + 22 * u, by - 11 * u], [bx - 26 * u, by - 11 * u]], "#f0c64a", 0);
+      p.ell(bx - 9 * u, by - 39 * u, 8 * u, 5 * u, "#f0c64a", 1.6 * u); p.ell(bx + 5 * u, by - 39 * u, 8 * u, 5 * u, "#f0c64a", 1.6 * u);
+      p.poly(rrect(bx - 26 * u, by - 34 * u, bx + 22 * u, by + 6 * u, 3 * u), null, 2.4 * u);
+    } else { p.poly([[bx - 24 * u, by - 26 * u], [bx + 22 * u, by - 30 * u], [bx + 24 * u, by], [bx - 22 * u, by + 4 * u]], "#3a5a8a", 2.2 * u); p.stroke([[bx, by - 28 * u], [bx + u, by + 2 * u]], 1.5 * u, "#f2ead8"); }
+    p.dot(bx, by, 5.5 * u);
+  }
   // ---- head ----
   const hx = 300 + 4 * u;
+  if (mode === "sit" && opts.nod) { const [cpx, cpy] = rotAbout([hx, chin], rad(lean), [300, hipY]); p.rot = [rad(lean + opts.nod), hx, chin, cpx - hx, cpy - chin]; }
   hatBehind(p, o, H, hx, hc, light, thick, ow, true);
   const hp = blobPts(hx, hc, H);
   p.shadedFill(hp, skin, mul(skin, SH_SKIN), light, H.a);
