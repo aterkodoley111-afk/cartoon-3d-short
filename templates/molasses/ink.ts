@@ -44,6 +44,7 @@ export type InkOptions = {
   farOpacity?: number; // opacity multiplier reached at distFar
   fadeNear?: number; // m: start of the far fade-out
   fadeFar?: number; // m: lines gone
+  ss?: number; // supersampling of the normal/depth buffer + edge mask (2 = 4 samples per output pixel: stable lines)
 };
 
 const DEF: Required<InkOptions> = {
@@ -52,7 +53,7 @@ const DEF: Required<InkOptions> = {
   color: "#030303", strength: 1.0,
   widthNear: 5.1, widthFar: 3.3, distNear: 6, distFar: 90, creaseScale: 0.8, // round 3: creases 0.64 -> 0.8 (building corners)
   depthLo: 0.01, depthHi: 0.03, angleLo: 35, angleHi: 50, concaveGain: 0.7, // depth jumps from 1 %; creases from 35 deg (roof eaves)
-  farOpacity: 0.95, fadeNear: 150, fadeFar: 450,
+  farOpacity: 0.95, fadeNear: 150, fadeFar: 450, ss: 2,
 };
 
 const FS_VERT = /* glsl */ `
@@ -123,7 +124,7 @@ varying vec2 vUv;
 // pixel steps along x, y and both diagonals, and their length in px
 const vec2 STEP[4] = vec2[4](vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(1.0, 1.0), vec2(1.0, -1.0));
 const float SLEN[4] = float[4](1.0, 1.0, 1.41421, 1.41421);
-#define RMAX 9   // covers 5.1 px x pxScale 1.333 = 6.8 px at 1440x2560 (+0.5 AA ramp)
+#define RMAX 12  // covers 5.1 px x ss 2 = 10.2 mask px at 1080x1920 (+0.5 AA ramp)
 
 // textureLod: explicit LOD inside loops (nearest-filtered targets, no derivatives needed)
 float dist(sampler2D t, vec2 uv) { return -perspectiveDepthToViewZ(textureLod(t, uv, 0.0).x, cNear, cFar); }
@@ -192,7 +193,10 @@ uniform vec3 fogColor;
 uniform float fogInk;   // how far fully fogged ink moves toward the fog colour (0.3)
 uniform int debug;
 varying vec2 vUv;
-float m(float x, float y) { return texture2D(tMask, vUv + vec2(x, y) * texel).r; }
+// the mask is supersampled: 4 bilinear taps at +-0.25 output px average the 4x4 high-res texels under each tap
+float m1(vec2 uv) { return texture2D(tMask, uv).r; }
+float m(float x, float y) { vec2 c = vUv + vec2(x, y) * texel, q = 0.25 * texel;
+  return 0.25 * (m1(c + vec2(-q.x, -q.y)) + m1(c + vec2(q.x, -q.y)) + m1(c + vec2(-q.x, q.y)) + m1(c + vec2(q.x, q.y))); }
 void main() {
   float a = (4.0 * m(0.0, 0.0)
     + 2.0 * (m(1.0, 0.0) + m(-1.0, 0.0) + m(0.0, 1.0) + m(0.0, -1.0))
@@ -234,10 +238,12 @@ export class InkPass extends Pass {
   private fsCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   private quad: THREE.Mesh;
   private clearCol = new THREE.Color();
+  private ss = 2;
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, options: InkOptions = {}) {
     super("InkPass");
     const o = { ...DEF, ...options };
+    this.ss = o.ss;
     this.world = scene;
     this.cam = camera;
     this.cam.layers.enable(NOINK); // the main render still shows the NOINK layer (and its shadows)
@@ -250,7 +256,7 @@ export class InkPass extends Pass {
       depthTexture: new THREE.DepthTexture(1, 1, THREE.UnsignedIntType),
     });
     this.maskRT = new THREE.WebGLRenderTarget(1, 1, {
-      type: THREE.UnsignedByteType, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter,
+      type: THREE.UnsignedByteType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
       generateMipmaps: false, depthBuffer: false,
     });
     this.tmpRT = new THREE.WebGLRenderTarget(1, 1, {
@@ -287,7 +293,7 @@ export class InkPass extends Pass {
     });
     this.compMat = fs(COMP_FRAG, {
       inputBuffer: { value: null }, tMask: { value: this.maskRT.texture }, tNormal: { value: this.rt.texture },
-      texel: { value: texel }, inkColor: { value: new THREE.Color(o.color) }, debug: { value: 0 },
+      texel: { value: new THREE.Vector2(1, 1) }, inkColor: { value: new THREE.Color(o.color) }, debug: { value: 0 },
       fogColor: { value: new THREE.Color() }, fogInk: { value: 0.3 },
     });
     this.copyMat = fs(COPY_FRAG, { tSrc: { value: this.tmpRT.texture } });
@@ -314,14 +320,19 @@ export class InkPass extends Pass {
   }
 
   override setSize(width: number, height: number) {
-    this.rt.setSize(width, height);
-    this.maskRT.setSize(width, height);
+    const W = Math.round(width * this.ss), H = Math.round(height * this.ss);
+    this.rt.setSize(W, H);
+    this.maskRT.setSize(W, H);
     this.tmpRT.setSize(width, height);
-    (this.maskMat.uniforms.texel.value as THREE.Vector2).set(1 / width, 1 / height);
-    this.maskMat.uniforms.pxScale.value = height / 1920; // widths are specified at 1080x1920
+    (this.maskMat.uniforms.texel.value as THREE.Vector2).set(1 / W, 1 / H);
+    (this.compMat.uniforms.texel.value as THREE.Vector2).set(1 / width, 1 / height);
+    this.maskMat.uniforms.pxScale.value = H / 1920; // widths are specified at 1080x1920 (in mask pixels)
   }
 
   override render(renderer: THREE.WebGLRenderer, inputBuffer: THREE.WebGLRenderTarget) {
+    // size from the actual input every frame: the first frame of a render can arrive before setSize (no ink on the
+    // first frame of every chunk = a blink every 45 frames)
+    if (this.tmpRT.width !== inputBuffer.width || this.tmpRT.height !== inputBuffer.height) this.setSize(inputBuffer.width, inputBuffer.height);
     const scene = this.world, cam = this.cam;
     const autoClear = renderer.autoClear, shadowAuto = renderer.shadowMap.autoUpdate;
     const mask = cam.layers.mask, override = scene.overrideMaterial, background = scene.background;

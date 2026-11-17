@@ -25,6 +25,20 @@ const asphaltTex = () => ctex("asphalt", 512, 512, (g, r) => {
   g.fillStyle = "#6e6b66"; g.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 26; i++) { const x = r() * 512, y = r() * 512, rad = 40 + r() * 90; const gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, r() > 0.5 ? "rgba(90,92,100,0.35)" : "rgba(40,40,46,0.3)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - rad, y - rad, 2 * rad, 2 * rad); }
 });
+/** half-road tile 9 m (x) x 6 m (z): asphalt with the markings PAINTED IN (no decal geometry: thin strips a few mm
+ *  above the road z-fight and flicker at distance, and the ink pass outlines them). north = centre at v = 0 */
+const roadTex = (north: boolean) => ctex("road" + (north ? "N" : "S"), 1152, 768, (g, r) => {
+  const P = 128; // px per metre
+  g.fillStyle = "#6e6b66"; g.fillRect(0, 0, 1152, 768);
+  for (let i = 0; i < 40; i++) { const x = r() * 1152, y = r() * 768, rad = 60 + r() * 140; for (const ox of [-1152, 0, 1152]) { const gr = g.createRadialGradient(x + ox, y, 0, x + ox, y, rad); gr.addColorStop(0, r() > 0.5 ? "rgba(96,94,92,0.3)" : "rgba(52,50,50,0.25)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x + ox - rad, y - rad, 2 * rad, 2 * rad); } }
+  // v (canvas y) runs across the road: y = 0 at z = 0 (centre) for the north half, y = 0 at z = -6 (kerb) for the south
+  const yz = (z: number) => (north ? z : z + 6) * P;
+  g.fillStyle = "#efece4"; g.fillRect(0, yz(north ? 0 : 0) - 0.06 * P, 4 * P, 0.12 * P); // centre dash (only drawn on the half that owns z = 0)
+  if (!north) g.clearRect(0, 0, 0, 0);
+  g.fillStyle = "#e8c03a";
+  for (const z of north ? [5.55, 5.75] : [-5.75, -5.55]) g.fillRect(0, yz(z) - 0.05 * P, 1152, 0.1 * P);
+  g.fillStyle = "#1c181b"; g.fillRect(0, north ? 768 - 0.13 * P : 0, 1152, 0.13 * P); // kerb edge (painted ink, steady)
+});
 const paveTex = () => ctex("pave", 512, 512, (g, r) => {
   g.fillStyle = "#aaa59c"; g.fillRect(0, 0, 512, 512);
   for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) {
@@ -155,6 +169,16 @@ function quadUp(x0: number, x1: number, z0: number, z1: number, u: number, v: nu
   g.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, u, 0, u, v, 0, 0, u, v, 0, v], 2));
   return g;
 }
+/** road half quad: v = 0 at the z that the texture's top row maps to (north: z0 = centre; south: z0 = kerb) */
+function quadUpUV(x0: number, x1: number, z0: number, z1: number, u: number, _v: number, south: boolean) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute([x0, 0, z1, x1, 0, z1, x1, 0, z0, x0, 0, z1, x1, 0, z0, x0, 0, z0], 3));
+  g.setAttribute("normal", new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
+  // canvas y grows downward = texture v decreasing; canvas row 0 (v = 1) sits at z0
+  const vz1 = 0, vz0 = 1; void south;
+  g.setAttribute("uv", new THREE.Float32BufferAttribute([0, vz1, u, vz1, u, vz0, 0, vz1, u, vz0, 0, vz0], 2));
+  return g;
+}
 /** quad facing +z (toward a camera at +z) at depth z */
 const quadZ = (x0: number, x1: number, y0: number, y1: number, z: number, u = 1, v = 1) => quad(V(x0, y0, z), V(x1, y0, z), V(x1, y1, z), V(x0, y1, z), u, v);
 /** lumpy rock / blob geometry (smooth normals) */
@@ -236,21 +260,25 @@ export class World {
 
   // ---------------- Whitechapel Road ----------------
   private buildStreet() {
-    const b = new Batch(), bn = new Batch();
+    const b = new Batch(), bn = new Batch(), gs = new Batch(), gn = new Batch();
     const asph = lam("asphalt", () => ({ map: rep(asphaltTex(), 1, 1) })), pave = lam("pave", () => ({ map: rep(paveTex(), 1, 1) }));
     const kerb = lam("kerb", () => ({ color: "#a9a59c" })), white = lam("roadWhite", () => ({ color: "#efece4" })), yellow = lam("roadYellow", () => ({ color: "#e8c03a" }));
-    b.add(quadUp(-700, 700, -6, 0, 350, 1.5), asph); bn.add(quadUp(-700, 700, 0, 6, 350, 1.5), asph);
-    b.add(quadUp(-700, 700, -60, -10, 700, 25, 0.15), pave); bn.add(quadUp(-700, 700, 10, 60, 700, 25, 0.15), pave);
-    b.add(quadUp(-700, 700, -10, -6.2, 700, 1.9, 0.15), pave); bn.add(quadUp(-700, 700, 6.2, 10, 700, 1.9, 0.15), pave);
-    b.add(boxGeo(V(-700, 0, -6.2), V(700, 0.15, -6)), kerb); bn.add(boxGeo(V(-700, 0, 6), V(700, 0.15, 6.2)), kerb);
-    for (let x = -700; x < 700; x += 9) bn.add(quadUp(x, x + 4, -0.06, 0.06, 1, 1, 0.006), white); // centre dashes
-    for (const z of [-5.75, -5.55]) b.add(quadUp(-700, 700, z - 0.05, z + 0.05, 1, 1, 0.006), yellow);
-    for (const z of [5.55, 5.75]) bn.add(quadUp(-700, 700, z - 0.05, z + 0.05, 1, 1, 0.006), yellow);
+    // road halves with the markings painted in (u: 9 m tiles along x; v: 0..1 across the half)
+    const roadS = lam("roadS", () => ({ map: roadTex(false) })), roadN = lam("roadN", () => ({ map: roadTex(true) }));
+    gs.add(quadUpUV(-702, 702, -6, 0, 1404 / 9, 1, true), roadS); gn.add(quadUpUV(-702, 702, 0, 6, 1404 / 9, 1, false), roadN); void asph;
+    // ground = road + kerb + pavement: ONE seamless surface per side and never inked (ground/ground seams open
+    // sub-pixel cracks -> dashed ink lines; a 15 cm kerb seen edge-on is a 1-2 px sliver -> its line blinks).
+    // The kerb edge is painted into the road texture instead, so it is always there.
+    gs.add(quadUp(-700, 700, -60, -6.2, 700, 26.9, 0.15), pave); gn.add(quadUp(-700, 700, 6.2, 60, 700, 26.9, 0.15), pave);
+    gs.add(boxGeo(V(-700, 0, -6.2), V(700, 0.15, -6)), kerb); gn.add(boxGeo(V(-700, 0, 6), V(700, 0.15, 6.2)), kerb);
+    // flat decals (road paint, manhole covers) go on NOINK: a 6 mm "depth jump" makes a flickering ink line at distance
+    const ds = new Batch(), dn = new Batch();
+    void white; void yellow;
     // manhole covers dotted along the sewer line
     const iron = lam("manholeIron", () => ({ color: "#3a3a40" }));
-    for (const x of [-190, -100, -60, -20, 20, 60, 100]) bn.add(new THREE.CylinderGeometry(0.36, 0.36, 0.02, 24), iron, new THREE.Matrix4().makeTranslation(x, 0.01, 0));
+    for (const x of [-190, -100, -60, -20, 20, 60, 100]) dn.add(new THREE.CylinderGeometry(0.36, 0.36, 0.02, 24), iron, new THREE.Matrix4().makeTranslation(x, 0.01, 0));
     // the open manhole (crawler) + its lid lying beside it, barriers and cones
-    bn.add(new THREE.CylinderGeometry(0.4, 0.4, 0.02, 24), lam("hole", () => ({ color: "#0e0c0c" })), new THREE.Matrix4().makeTranslation(MH_CAM[0], 0.012, MH_CAM[2]));
+    dn.add(new THREE.CylinderGeometry(0.4, 0.4, 0.02, 24), lam("hole", () => ({ color: "#0e0c0c" })), new THREE.Matrix4().makeTranslation(MH_CAM[0], 0.012, MH_CAM[2]));
     bn.add(new THREE.CylinderGeometry(0.36, 0.36, 0.05, 24), iron, new THREE.Matrix4().makeTranslation(MH_CAM[0] + 0.95, 0.025, MH_CAM[2] + 0.5));
     const cone = lam("cone", () => ({ color: "#f07a2a" })), band = lam("coneBand", () => ({ color: "#f6f4ee" }));
     const cones = (x: number, z: number) => { bn.add(new THREE.ConeGeometry(0.16, 0.6, 14).translate(0, 0.3, 0), cone, new THREE.Matrix4().makeTranslation(x, 0, z)); bn.add(new THREE.CylinderGeometry(0.105, 0.125, 0.1, 14), band, new THREE.Matrix4().makeTranslation(x, 0.34, z)); bn.add(boxGeo(V(x - 0.2, 0, z - 0.2), V(x + 0.2, 0.04, z + 0.2)), cone); };
@@ -294,6 +322,8 @@ export class World {
       for (let k = 0; k < 6; k++) bn.add(new THREE.SphereGeometry(0.13, 10, 8), lam("fruit" + (k % 4), () => ({ color: ["#e8a020", "#d23b3b", "#8ab03a", "#f3d35a"][k % 4] })), new THREE.Matrix4().makeTranslation(x - 1.1 + k * 0.45, 1.1, z - 0.4 + (k % 2) * 0.5));
     }
     b.build(this.street); bn.build(this.north);
+    const decal = (bb: Batch, parent: THREE.Object3D) => { const g = new THREE.Group(); bb.build(g, false); g.traverse((o) => o.layers.set(NOINK)); parent.add(g); };
+    decal(ds, this.street); decal(dn, this.north); decal(gs, this.street); decal(gn, this.north);
   }
 
   // ---------------- the sewer + the fatberg ----------------
@@ -402,8 +432,10 @@ export class World {
     b.add(quadZ(-400, 400, SEW_Y + SEW_R + 0.22, -0.75, 0, 200, 1.0), soil);
     b.add(quadZ(-400, 400, -10, SEW_Y - SEW_R - 0.22, 0, 200, 3), soil);
     const rim = lam("rimBrick", () => ({ map: rep(brick(), 200, 0.45), color: "#c07858" }));
-    b.add(quadZ(-400, 400, SEW_Y + SEW_R, SEW_Y + SEW_R + 0.22, 0.004, 200, 0.45), rim);
-    b.add(quadZ(-400, 400, SEW_Y - SEW_R - 0.22, SEW_Y - SEW_R, 0.004, 200, 0.45), rim);
+    const rb = new Batch();
+    rb.add(quadZ(-400, 400, SEW_Y + SEW_R, SEW_Y + SEW_R + 0.22, 0.004, 200, 0.45), rim);
+    rb.add(quadZ(-400, 400, SEW_Y - SEW_R - 0.22, SEW_Y - SEW_R, 0.004, 200, 0.45), rim);
+    const rg = new THREE.Group(); rb.build(rg, false); rg.traverse((o) => o.layers.set(NOINK)); this.cut.add(rg);
     b.add(quadZ(-400, 400, 0.15 - 0.15, 0.15, -10 + 0.001, 1, 1), lam("kerbFace", () => ({ color: "#a9a59c" })));
     // the pit in front: floor and a far wall
     b.add(quadUp(-400, 400, 0, 45, 200, 22, -10), lam("pitFloor", () => ({ map: rep(soilTex(), 1, 1), color: "#a08a78" })));
@@ -591,7 +623,7 @@ export class World {
     const t = f / FPS, s = SHOTS[id - 1], L = LIGHTS[s.light], set = setAt(id, f);
     const c = camAt(id, f);
     cam.position.set(...c.pos); cam.up.set(0, 1, 0); cam.lookAt(...c.look); cam.rotateZ(c.roll);
-    cam.fov = c.fov; cam.near = set === "sewer" ? 0.05 : 0.12; cam.far = 1500; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+    cam.fov = c.fov; cam.near = set === "sewer" ? 0.05 : set === "street" ? 0.4 : 0.12; // street: 3x the depth precision (no z-fighting) cam.far = 1500; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
     const focus = V(...c.look), dist = cam.position.distanceTo(focus);
     cam.layers.enable(NOINK);
     const K = LOOK[s.light], sunDir = this.shotSun(id, s, L);

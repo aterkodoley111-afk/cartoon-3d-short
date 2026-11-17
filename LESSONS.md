@@ -59,6 +59,19 @@ SKILL.md, so the next video starts from a better place. SKILL.md holds the disti
 - Full re-render required (~3.6 h). Lesson: run tools/flicker.py on a range render of the busiest shots of each set
   BEFORE the first full render.
 
+### Feedback after v2 (no re-render asked): ink lines flicker everywhere; objects must look real
+- Cause 1: the ink mask was computed at 1 sample per pixel, so every world line snapped to whole pixels and crawled.
+  Fix: ink.ts supersampled 2x (RMAX 12), mask downsampled with bilinear taps; now in every template.
+- Cause 2 (the user's frames: a kerb line that appears and disappears, a dashed line on the pavement): ground built
+  from several quads (seam at z = 10 opened sub-pixel cracks = dashed ink) and a 15 cm kerb seen edge-on (1-2 px
+  sliver, detected in some frames only). Fix: ground on NOINK, one quad per ground area, kerb edge + road markings
+  painted into the road texture. Measured on frames 0-17 of the hook: kerb/pavement ink toggles 36552 px -> 0.
+- Cause 3: road markings as strips 6 mm above the road z-fought (the second yellow line vanished every few frames).
+  Fix: markings painted in, outdoor near plane 0.12 -> 0.4 m. Yellow-line pixel count jump per frame 8.6 % -> 1.9 %.
+- The bus, tanker and van were plain boxes; the user wants real shapes and sizes. New SKILL.md section "Real objects
+  must look real": reference photo + real dimensions before modelling, rounded/bevelled vehicle bodies, wheel arches,
+  window panes, lights, etc.
+
 ---
 
 ## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16

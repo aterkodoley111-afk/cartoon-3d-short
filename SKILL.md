@@ -224,6 +224,29 @@ lighting 5-6, ink 6, textures 5-6, characters 7, depth 6-7, composition 6-7 (fro
 - 2K renders run ~4 fps (≈10 min for 67 s). Stills at 0.5 take 3-8 s each after a ~40 s bundle.
 - Film grain at 2.5 % made the 2K file 910 MB instead of ~250 MB and will turn to mush on YouTube; the reference has none. Keep it off.
 
+## Ink line stability (user: "the ink lines of the road, buildings, cars flicker in the entire video")
+- The world ink pass (ink.ts) runs SUPERSAMPLED (`ss: 2`, RMAX 12) and sizes itself from the input buffer every frame.
+  Never set ss below 2: at 1 sample per pixel every line snaps to whole pixels and crawls when the camera moves.
+- Ground is never inked: road, kerb, pavement, grass, floors go on NOINK (`decal()` in templates/fatberg/world.ts).
+  Ground-to-ground seams open sub-pixel cracks (dashed ink lines that come and go) and a 15 cm kerb seen edge-on is a
+  1-2 px sliver whose line blinks. Build each ground area as ONE quad, and PAINT kerb edges, road markings, gutters and
+  paving joints into the textures. No decal strips floating mm above a surface (they z-fight and blink).
+- Outdoor cameras use near = 0.4 m (sewers/interiors 0.05-0.12): 3x the depth precision, no z-fighting at 30 m+.
+- Anything thinner than ~3 px on screen (poles, rails, cables, steps, window bars) is either thick enough to stay
+  >= 3 px in every frame of the shot, or NOINK with its edge painted in. Check with an 18-frame range render: count
+  dark (ink) pixels per frame in a crop; the count must change smoothly, never alternate up/down.
+
+## Real objects must look real (user: "buses, grass, animals, real objects must have their real shape and size")
+- Before building any real object, look up a reference photo (image search) and its real dimensions; write them in
+  the code comment. Model to scale: double-decker 11.2 x 2.55 x 4.4 m, car 4.5 x 1.8 x 1.5 m, kerb 0.12-0.15 m,
+  door 2.1 m, storey 2.9 m, adult 1.7 m, sewer as in the facts (do not enlarge a real structure without saying so).
+- No bare boxes for vehicles: rounded body corners (bevelled boxes or ExtrudeGeometry with a rounded outline), wheel
+  arches with recessed wheels + hubs, windscreen raked/rounded, separate window panes with pillars, doors, mirrors,
+  head/tail lights, number-plate shape (no text), bumper. Buildings: window reveals (inset glass), sills, doors,
+  gutters/downpipes, roof with real pitch and chimneys. Plants: cartoon vegetation from build.ts, never cones/spheres.
+  Animals: real silhouette proportions from a reference, legs on the ground, correct size against people.
+- Verifier prompt must include "does every real object match its real shape and size?" with the reference photos.
+
 ## Flicker traps (swiftshader render; measured with tools/flicker.py)
 - Transparent depthWrite:false meshes (glass cases) behind/in front of lens-blurred subjects stair-step and change
   every frame: leave glass out, draw only the frame edges.
