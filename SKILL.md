@@ -247,6 +247,26 @@ lighting 5-6, ink 6, textures 5-6, characters 7, depth 6-7, composition 6-7 (fro
   Animals: real silhouette proportions from a reference, legs on the ground, correct size against people.
 - Verifier prompt must include "does every real object match its real shape and size?" with the reference photos.
 
+## Real motion and real physics (user: "liquid flowing, a person driving, a person in a bus don't feel real;
+## grass in the wind must move like real grass")
+Use `templates/real/realism.ts` (tested in `templates/real/RealTest.tsx`, sheet `templates/real/test_sheet.jpg`):
+- **Liquids** never as a flat card: `new Pour({from, dir, speed, radius, surfaceY, liquid, foam, slick})` and
+  `pour.update(t)` = ballistic arc from the mouth with exit speed, thinning with speed, gentle surface ripple, crown
+  splash, hopping droplets, fading ripple rings, a slick that grows. The pipe mouth is real geometry with a rim.
+  Known polish item: a faint kink in the stream shading at one ring; check it in the first shot that uses it.
+- **Vehicles** from `car()` / `bus()` at real size with interiors; `drive(v, dist, t, accel)` every frame: wheels
+  spin from distance, suspension bob, pitch on accelerate/brake. Moving vehicles always move in the world (and the
+  world moves past them: passing posts, trees, road marks), never a still box with a sliding background.
+- **Occupants** sit on the vehicle's seat anchors (`v.seats.driver`, `v.seats.rows`) in sit mode, at scale 1, the
+  driver's hands on the wheel; seen through glass framed by pillars; some other seats filled; never a figure standing
+  in a hole of a box.
+- **Wind**: grass = `grassField()` (instanced tapered blades, NOINK), trees/reeds/flags/cloth = `windSway(material)`;
+  set `WIND.time.value = t` each frame. Gusts travel across the field; tips move more than bases.
+- **Everything that should move, moves**: water ripples, smoke drifts and spreads, leaves flutter, hair/clothes on
+  wind, wheels turn, people breathe and blink, doors swing on hinges. A still element in a "living" place reads fake.
+- Before a full render, render 3-4 test stills of every new real object/effect in RealTest-style isolation and look
+  at them against a reference photo.
+
 ## Flicker traps (swiftshader render; measured with tools/flicker.py)
 - Transparent depthWrite:false meshes (glass cases) behind/in front of lens-blurred subjects stair-step and change
   every frame: leave glass out, draw only the frame edges.

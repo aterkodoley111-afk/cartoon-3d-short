@@ -72,6 +72,15 @@ SKILL.md, so the next video starts from a better place. SKILL.md holds the disti
   must look real": reference photo + real dimensions before modelling, rounded/bevelled vehicle bodies, wheel arches,
   window panes, lights, etc.
 
+### Feedback on earlier videos (river pour, Hope car and bus): "doesn't feel real"
+- River oil pipe: a flat wavy card hanging straight down from the pipe centre, no exit speed, no impact. Hope Slide
+  car: a box with a flat lid and a floating head, no seat/wheel/glass; bus: a box frame with a standing figure.
+- New `templates/real/realism.ts`: Pour (ballistic, thinning, splash, droplets, fading rings, slick), car()/bus() at
+  real size (extruded rounded profiles, wheel arches, spoked wheels, glass panes on pillars, lights, grille, bumpers,
+  mirrors, interior seats + dashboard + steering wheel + seat anchors), drive() (wheel spin, bob, pitch),
+  windSway()/grassField() (gusting wind). Tested in RealTest.tsx (4 views, swiftshader): reads as real grass, a real
+  car and bus; pour needs one shading polish. New SKILL.md section "Real motion and real physics".
+
 ---
 
 ## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16
