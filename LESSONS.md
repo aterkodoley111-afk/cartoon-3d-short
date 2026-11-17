@@ -53,6 +53,9 @@ SKILL.md, so the next video starts from a better place. SKILL.md holds the disti
   Fix: per-event gains down 5-9 dB, hisses low-passed, and `sfx_ceiling()` (>= 9 dB under voice everywhere).
 - The blue road at the ending was the bus's long shadow at a 12-degree backlit sun, painted with the golden preset's
   violet shade next to bright orange road. Fix for backlit sunsets: per-shot warm dusky shade (0.36, 0.24, 0.26).
+- v2 result: whole-film flicker mean 3.78 % -> 2.82 %, worst frame 43.97 % (clang shake) -> 21.34 % (real crawler
+  motion); SFX >= 8.9 dB under the voice everywhere; -15.0 LUFS / -1.4 dBTP. Two workspace restarts killed the render:
+  chunks.mjs resumed cleanly each time (check `ps` for it after any restart notice).
 - Full re-render required (~3.6 h). Lesson: run tools/flicker.py on a range render of the busiest shots of each set
   BEFORE the first full render.
 
