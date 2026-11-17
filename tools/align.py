@@ -2,7 +2,8 @@
 # Word timings for the script: sherpa-onnx zipformer ASR (token timestamps) on ~20 s chunks, then the script words are
 # aligned to the recognised words (difflib), unmatched script words interpolated between neighbours.
 import sys, json, re, difflib, numpy as np, soundfile as sf, sherpa_onnx
-D = "/root/molasses-short/models/sherpa-onnx-zipformer-en-2023-06-26/"
+import os
+D = os.environ.get("ZIPFORMER_DIR", os.path.expanduser("~/models/sherpa-onnx-zipformer-en-2023-06-26")) + "/"
 rec = sherpa_onnx.OfflineRecognizer.from_transducer(encoder=D + "encoder-epoch-99-avg-1.int8.onnx", decoder=D + "decoder-epoch-99-avg-1.onnx",
     joiner=D + "joiner-epoch-99-avg-1.int8.onnx", tokens=D + "tokens.txt", num_threads=2, decoding_method="greedy_search")
 wav, sr = sf.read(sys.argv[1], dtype="float32", always_2d=True); wav = wav.mean(1)

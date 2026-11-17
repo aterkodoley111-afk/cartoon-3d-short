@@ -1,0 +1,60 @@
+# Cues (s)
+
+duration 66.633 s, integrated -15.0 LUFS, true peak -1.3 dBTP
+
+-   0.00  hook dread
+-   0.00  lahar roar (hook)
+-   0.86  bore hits piers
+-   2.26  pier cracks
+-   3.84  night wind (mountain)
+-   4.40  whoosh into flash
+-   4.92  Ka chuffing
+-   5.46  chime whistle
+-   6.84  carriage rumble
+-   7.04  passengers chatting
+-   9.60  crickets
+-   9.60  trickle
+-  11.82  summit pad
+-  11.92  summit wind
+-  15.44  seep
+-  18.49  dam cracks
+-  18.59  BOOM
+-  18.64  burst roar
+-  19.27  boulders grinding
+-  19.27  lahar roar
+-  23.67  ice
+-  24.36  hit stab
+-  24.36  hits the bridge
+-  25.75  pier ripped out
+-  26.60  span clang
+-  26.63  far chuffs
+-  26.63  flood roar (steady)
+-  28.47  truck idling
+-  30.19  running steps
+-  30.19  train bearing down
+-  32.00  brakes squeal
+-  32.10  brake hiss
+-  33.55  quiet pad (151)
+-  35.01  engine goes over
+-  35.56  engine hits the river
+-  35.76  steam
+-  36.19  river (quiet beat)
+-  38.63  carriage creaks
+-  42.71  it tips
+-  44.09  coupling snaps
+-  44.74  carriage hits
+-  44.75  rescue pad
+-  45.05  window smashes
+-  48.27  tap drips
+-  51.51  plug wears
+-  52.71  drain gurgles
+-  53.31  duck squeak
+-  54.75  no eruption ding
+-  55.36  day birds
+-  55.36  warm ending
+-  58.68  2007 lahar
+-  58.99  2007 breach
+-  61.04  wave passes
+-  61.14  alarm siren
+-  62.24  diesel idling
+-  65.32  carol tag

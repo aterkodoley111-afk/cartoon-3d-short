@@ -21,7 +21,10 @@ is closer: bridge (crowds marching, structure physics), molasses (flood/fluid, i
 vehicles, industrial set, many small insert gags). Proven example 5: **The 250-Metre Monster Hiding Under London** (Whitechapel fatberg 2017), 61 s: source
 `templates/fatberg/` (London terraces, a sewer + CUTAWAY diagram set, buses/tankers from boxes, five insert rooms),
 project files `projects/whitechapel-fatberg/`. Start "something hidden underground / inside" shorts from it.
-Proven example 4: **The Mountain That Suddenly Disappeared** (Hope
+Proven example 6: **The Volcano That Didn't Erupt** (Tangiwai, 1953), 66.6 s, a night short: source
+`templates/tangiwai/` (river valley + live lahar bore, hinged bridge spans, a steam train that dives along one path,
+a crater set with a breaching tephra dam, droplet spray, a 3D bath, a detailed 2007 diesel in `trains.ts`), project
+files `projects/tangiwai/`. Start night, flood, train-crash or "dam/lake bursts" shorts from it. Proven example 4: **The Mountain That Suddenly Disappeared** (Hope
 Slide, BC 1965), 66 s: source `templates/hope/` (landscape as height functions in `terrain.ts`, a travelling landslide,
 conifer bands, vehicles with window holes), project files `projects/hope-slide/`. Start landscape/disaster shorts
 from it.
@@ -210,6 +213,12 @@ lighting 5-6, ink 6, textures 5-6, characters 7, depth 6-7, composition 6-7 (fro
 5. Contracts between owners live in exported constants (e.g. `NOINK` layer from ink.ts, `dofAt`/`FOREGROUND` from story.ts, `LIGHTS`/`LOOK` from lights.ts). Changing a contract means telling every owner that reads it.
 
 ## Gotchas
+- Never pass a cache key in place of a shot id (camAt(id*10) crashed every frame); never turn a model round with
+  `scale.x = -1` (winding + mirrored textures): rotate it.
+- Landscape noise must be masked out of the rail/road corridor, or it buries the train in an aerial.
+- Night: lit ~[0.3,0.38,0.66], shade ~[0.08,0.1,0.21], world saturation ~0.62, card gain ~0.74; stars as soft discs on
+  an angular grid in the sky shader; no additive light cones (they read as white solids) - glow cards instead.
+- Ribbons of water seen from below the camera: DoubleSide, or the winding culls them.
 - Kenney nature-kit materials are teal: recolour them by material name in build.ts.
 - Cameras end up inside houses: the sight-line culler in build.ts/world.ts removes anything blocking any camera ray.
 - Ink in the same merged effect pass as DOF gets overwritten. Ink must be its own pass before the blur.

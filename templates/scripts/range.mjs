@@ -5,6 +5,6 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 const [out, a, b] = process.argv.slice(2);
 const browserExecutable = "/usr/bin/google-chrome", chromiumOptions = { gl: "swiftshader" };
 const serveUrl = await bundle({ entryPoint: path.resolve("src/index.ts"), publicDir: path.resolve("public") });
-const composition = await selectComposition({ serveUrl, id: "<CompositionId>", browserExecutable, chromiumOptions });
+const composition = await selectComposition({ serveUrl, id: process.env.COMP ?? "TangiwaiShort", browserExecutable, chromiumOptions });
 await renderMedia({ composition, serveUrl, codec: "h264", crf: 16, muted: true, frameRange: [Number(a), Number(b)], outputLocation: out, browserExecutable, chromiumOptions, concurrency: 1, timeoutInMilliseconds: 240000 });
 console.log("done", out);

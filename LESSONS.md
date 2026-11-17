@@ -3,6 +3,58 @@
 One entry per finished video, newest first. Each entry records what went wrong, what fixed it and what changed in
 SKILL.md, so the next video starts from a better place. SKILL.md holds the distilled rules; this file keeps the history.
 
+## Video 6: The Volcano That Didn't Erupt (Tangiwai, Christmas Eve 1953), 2026-11-17
+
+- Result: 66.6 s, 1440x2560 (rendered 1080x1920, lanczos upscale), 17 shots / 31 camera setups, user's ElevenLabs
+  voice (226 words; raw 89.2 s -> 78.9 s after `tighten.py 0.18` -> 65.7 s with atempo 1.20; align matched 213/226),
+  original score + synthesized SFX, -15.0 LUFS / -1.3 dBTP, 1999 frames, 84 MB. Render 4-15 s/frame on 2 vCPUs (bath
+  and carriage interiors with lens blur 12-15, night wides 4-7); 45 chunks over 4 runs, ~5.5 h including 6 re-rendered
+  crater chunks.
+- Project: `projects/tangiwai/`. Source: `templates/tangiwai/` (a river valley as height functions with a live lahar
+  surface, a plate-girder bridge whose spans hinge and pier topples, a Ka 4-8-4 steam loco + carriages that follow a
+  dive path into the river (`terrain.ts pathXZ/pathY`, `world.ts placeCar`), a crater set with a tephra dam that
+  breaches, a real 3D bathtub analogy, a DX diesel in 2007, instanced droplets for every splash).
+
+### What went wrong, and the fix
+1. **A shot-sun cache keyed `id * 10 + k` was passed as the shot id to camAt** -> `CAMS[10x]` undefined, "reading '0'"
+   crash on most frames. Keep cache keys separate from ids.
+2. **Far-hill noise rose 8 m over the track at x ~ 960**: the aerial shot's whole train was buried. Multiply any
+   landscape noise by a corridor mask around the line (`sstep(25, 160, |z|)`).
+3. **Additive beam cones** (headlight volume) read as giant white half-pipes; dropped them for glow cards.
+4. **User: "the character is passing through"** - flat cards standing in a cab / on seats were sliced by the backhead,
+   seat backs and cushions. Fix: `Place.pull` (world.ts) draws the card 0.2-0.45 m toward the lens and rescales it, and
+   stage people clear of interior props (fireman was placed inside the backhead box).
+5. **User: "everything must be real; the dam, stones, water, its flow, the colours"**. Replaced: cartoon fxSplash
+   cards -> instanced ballistic droplets (`Burst`, world.ts poseDrops); faceted dodecahedron rocks (ink creases) ->
+   `rockGeo()` merged, lumpy, fracture-faced, textured stones + 1500 instanced bed boulders; flat water -> Phong with
+   an env map, a 1024 foam-streak/boil texture scrolled at the flow speed, travelling chop + standing waves at piers;
+   ash dam -> layered tephra vertex colours (bands by height) + 3D ash chunks carried down the gully; the 2D bathtub
+   card -> a real enamel bath (ExtrudeGeometry ring), clamped rippling water sheet, sand plug, drain vortex, 3D duck.
+6. **User: "the train looks cheap"** (2007 DX). Rebuilt from the real U26C layout: short nose, full-width cab with
+   raked glass, louvred long hood with walkways + handrails, roof fans, exhaust, 3-axle bogies with springs and brake
+   cylinders, fuel tank, chevron pilot, couplers, hoses, ditch lights (`trains.ts buildDX`). Never mirror a model with
+   `scale.x = -1` to turn it round; rotate it.
+7. **Night too bright**: the first night preset read as daylight (yellow tussock). Final night: lit [0.3,0.38,0.66],
+   shade [0.08,0.1,0.21], world sat 0.62, card gain 0.74, star field in the sky shader (soft 3 px discs on an angular
+   grid: steady, no shimmer).
+8. **Breach unreadable**: the outflow ribbon was back-face culled (winding) and the camera sat behind a rim ridge.
+   DoubleSide the water ribbon; frame a dam from down its outlet gully, looking back at the notch with the lake behind.
+9. Water inside a vertical frame: a 1.7 m bath at 2 m with fov 46 shows only 0.95 m width - shoot long objects along
+   their length (from the tap end).
+10. freezedetect flagged 12.1 s (slow glide start) and 32.0 s (cab camera riding with the loco on a dark night).
+
+### What worked (keep)
+- Path-following rolling stock: each vehicle placed by its front and back points on one 3D path (`placeCar`), so a
+  dive, a pile-up and a turn downstream come from a single function; a settled pose + one special-cased carriage.
+- Lahar as a bore in channel coordinates (`waterY`, front `zfAt(lt)`) with a per-shot lahar clock (hook replay, gorge
+  run, live hit, steady flood).
+- Restarting `chunks.mjs` after deleting only the affected chunks + `bundle.txt` (crater fix cost 6 chunks, not a rerun).
+
+### Realism added vs video 5
+Instanced droplet spray, real stones/boulders, foam-streaked reflective lahar water with travelling waves, a tephra
+dam with strata and chunks, a detailed steam loco (rods, domes, cab with gauges/firehole), carriages with lit windows
+and silhouettes, a detailed DX diesel, a 3D bath, tussock + scrub fields swaying.
+
 ## Video 5: The 250-Metre Monster Hiding Under London (Whitechapel fatberg, 2017), 2026-11-17
 
 - Result: 61.2 s, 1440x2560 (rendered 1080x1920, lanczos upscale), 12 shots / 26 camera setups, user's ElevenLabs
