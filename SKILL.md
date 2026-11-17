@@ -257,6 +257,14 @@ Use `templates/real/realism.ts` (tested in `templates/real/RealTest.tsx`, sheet 
 - **Vehicles** from `car()` / `bus()` at real size with interiors; `drive(v, dist, t, accel)` every frame: wheels
   spin from distance, suspension bob, pitch on accelerate/brake. Moving vehicles always move in the world (and the
   world moves past them: passing posts, trees, road marks), never a still box with a sliding background.
+- **Car detail checklist** (all in `car()` with `carMaterials(paint)`, sheet `templates/real/test_sheet_car.jpg`):
+  glossy Phong paint with clear-coat highlights; tinted glass texture (sky reflection at the top, dark at the bottom,
+  diagonal reflection streaks) with rubber seals and a chrome sill strip; raked windscreen + rear screen with wipers;
+  door shut lines, handles, rubbing strip, shaped mirrors with glass; headlight units = chrome housing + reflector +
+  twin bulbs + domed clear lens + amber indicator; tail lights = red segmented lens; chrome-barred grille; bumpers;
+  UK plates (white front, yellow rear, blank); tyres with tread texture and rounded sidewalls; 5-spoke alloys with rim
+  lip, centre cap and nuts; dark wheel-well liners. Anything placed on an extruded body must be offset by the bevel
+  (the surface is `bevel` outside the profile points), or it ends up buried inside the body.
 - **Occupants** sit on the vehicle's seat anchors (`v.seats.driver`, `v.seats.rows`) in sit mode, at scale 1, the
   driver's hands on the wheel; seen through glass framed by pillars; some other seats filled; never a figure standing
   in a hole of a box.

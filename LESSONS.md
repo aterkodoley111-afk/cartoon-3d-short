@@ -81,6 +81,14 @@ SKILL.md, so the next video starts from a better place. SKILL.md holds the disti
   windSway()/grassField() (gusting wind). Tested in RealTest.tsx (4 views, swiftshader): reads as real grass, a real
   car and bus; pour needs one shading polish. New SKILL.md section "Real motion and real physics".
 
+### Feedback: "more realistic: car windows, texture, headlights"
+- car() rebuilt: carMaterials() (Phong clear-coat paint, glass texture with sky reflection + streaks, tyre tread,
+  UK plates), lamp() units (chrome housing, reflector, twin bulbs, domed lens, amber indicator / red segmented tail),
+  door lines, handles, mirrors, wipers, grille bars, bumpers, alloy wheels with rim lip + cap + nuts, wheel-well liners.
+- Bug found in testing: ExtrudeGeometry's bevel grows the outline by `bevel` (9 cm), so lamps, grille and plates placed
+  on the profile points were buried inside the body and the wheel arches were 9 cm too tight. Fixed by offsetting
+  along the surface normal; noted in profileBody(). Test sheets: templates/real/test_sheet_car.jpg.
+
 ---
 
 ## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16
