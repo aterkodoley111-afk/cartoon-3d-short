@@ -459,7 +459,7 @@ const hatOn = (p: Pen, o: Outfit, hp: P2[], H: Blob, cx: number, hc: number, lig
 // ---------------- bodies ----------------
 export type Arms = [P2[], P2[]];
 /** held prop; for the hammer the number is the strike 0 (raised) .. 1 (struck) */
-export type Prop = null | "icecream" | "shako" | "bucket" | "point" | "armsUp" | "watch" | "jar" | "camera" | "magazine" | "phone" | "photo" | "fish" | "nozzle" | "hose" | "nose"
+export type Prop = null | "icecream" | "shako" | "bucket" | "point" | "armsUp" | "watch" | "jar" | "camera" | "magazine" | "phone" | "photo" | "fish" | "nozzle" | "hose" | "nose" | "wheel"
   | ["hammer" | "brush" | "pen" | "bat" | "rod" | "shovel", number];
 
 const BUILD: Record<Build, { a: number; torso: number; legs: number; tw: number }> = {
@@ -473,6 +473,8 @@ export type FrontOpts = {
   prop?: Prop; tilt?: number; headTilt?: number; wave?: number;
   /** canvas angle the key light comes FROM (painted crescent + thick outline side) */
   light?: number; facing?: -1 | 0 | 1; seed?: number;
+  /** driving: steering-wheel turn in radians (prop "wheel", mode "sit"); belt = seatbelt across the chest */
+  steer?: number; belt?: boolean;
 };
 
 const footStroke = (p: Pen, a: P2, b: P2, w: number, col: string) => {
@@ -482,7 +484,7 @@ const footStroke = (p: Pen, a: P2, b: P2, w: number, col: string) => {
 
 export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
   const { phase = 0, expr = "neutral", mode = "march", look = 0, blink = false, lift = 60, prop = null, tilt = 0, headTilt = 0, wave,
-    light = DEF_LIGHT, facing = 0, seed = 1 } = opts;
+    light = DEF_LIGHT, facing = 0, seed = 1, steer = 0, belt = false } = opts;
   const Bd = BUILD[o.build ?? "adult"], skin = o.skin ?? SKIN, two = Math.PI * 2, lid = lidOf(blink);
   const H = headBlob(seed, Bd.a, facing), W = 2 * H.a, HH = 2 * H.b, u = W / 100;
   const tall = (1 + Bd.torso + Bd.legs) * HH, sole = 975;
@@ -546,7 +548,12 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
   const rifle = !!o.rifle && (mode === "march" || mode === "stand" || mode === "stroll");
   type Arm = { pts: [P2, P2, P2]; front: boolean };
   const arms: Arm[] = [];
-  if (mode === "sit") for (const side of [-1, 1]) arms.push({ pts: [sh(side), [tcx + side * (1.1 * T.a + 6 * u), sh(side)[1] + 0.4 * HH], [tcx + side * (1.2 * T.a + 10 * u), torsoBot + 0.04 * HH]], front: false });
+  // driving: the wheel rim seen from the front (an ellipse in front of the chest), hands at ten-to-two turned by steer
+  const WC: P2 = [tcx, chin + 0.36 * HH], WR = 1.05 * T.a, rimPt = (a: number): P2 => [WC[0] + WR * Math.cos(a), WC[1] + 0.42 * WR * Math.sin(a)];
+  if (mode === "sit" && prop === "wheel") for (const side of [-1, 1]) {
+    const hnd = rimPt((side < 0 ? -Math.PI * 5 / 6 : -Math.PI / 6) + steer);
+    arms.push({ pts: [sh(side), [tcx + side * (1.05 * T.a + 6 * u), sh(side)[1] + 0.36 * HH], hnd], front: true });
+  } else if (mode === "sit") for (const side of [-1, 1]) arms.push({ pts: [sh(side), [tcx + side * (1.1 * T.a + 6 * u), sh(side)[1] + 0.4 * HH], [tcx + side * (1.2 * T.a + 10 * u), torsoBot + 0.04 * HH]], front: false });
   else if (mode === "fall") for (const side of [-1, 1]) arms.push({ pts: [sh(side), [tcx + side * (1.15 * T.a + 12 * u), sh(side)[1] - 0.25 * HH], [tcx + side * (1.3 * T.a + 24 * u), sh(side)[1] - 0.68 * HH]], front: false });
   else {
     if (prop === "armsUp") {
@@ -605,6 +612,10 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
   } else {
     p.gradFill(tp, o.jacket, mul(o.jacket, SH_CLOTH), light);
     p.clip(tp, () => {
+      if (belt) { // seatbelt: grey webbing from the left shoulder to the right hip, with a buckle tongue
+        p.band([[tcx - 0.95 * T.a, chin - 0.02 * HH], [tcx + 0.8 * T.a, torsoBot - 0.05 * HH]], "#4a4c55", 7 * u, 1.4 * u);
+        p.poly([[tcx + 0.55 * T.a, torsoBot - 0.2 * HH], [tcx + 0.72 * T.a, torsoBot - 0.17 * HH], [tcx + 0.7 * T.a, torsoBot - 0.08 * HH], [tcx + 0.53 * T.a, torsoBot - 0.11 * HH]], "#c9ccd2", 1.2 * u);
+      }
       if (o.belt) {
         for (const s of [-1, 1]) p.band([[tcx - s * 0.75 * T.a, chin - 0.05 * HH], [tcx + s * 0.8 * T.a, torsoBot - 0.1 * HH]], o.belt!, 5.5 * u, 1.8 * u);
         const xc = tcx + 0.025 * T.a, yc = chin - 0.05 * HH + (torsoBot - 0.1 * HH - (chin - 0.05 * HH)) * (0.75 / 1.55);
@@ -619,6 +630,12 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
     });
     if (o.sash) { const s = facing || 1; p.poly([[tcx + s * 0.55 * T.a, torsoBot - 0.3 * HH], [tcx + s * 0.75 * T.a, torsoBot + 0.05 * HH], [tcx + s * 0.45 * T.a, torsoBot + 0.02 * HH]], o.sash, 1.6 * u); }
     p.inkRing(tp, ow, thick);
+  }
+  if (mode === "sit" && prop === "wheel") { // steering wheel: rim, three spokes turned with steer, hub (behind the hands)
+    const rim: P2[] = []; for (let i = 0; i <= 48; i++) rim.push(rimPt((i / 48) * Math.PI * 2));
+    p.stroke(rim, 9 * u, INK); p.stroke(rim, 5.5 * u, "#2a2830");
+    for (const a of [Math.PI / 2, Math.PI * 7 / 6 - Math.PI / 3, -Math.PI / 6 + Math.PI / 3]) p.stroke([WC, rimPt(a + steer)], 4 * u, "#3a3840");
+    p.ell(WC[0], WC[1], 13 * u, 7 * u, "#3a3840", 2 * u); p.ell(WC[0], WC[1], 5 * u, 2.6 * u, "#c9ccd2", 0);
   }
   // in front of the body: hands holding props
   for (const a of arms) if (a.front) {
@@ -701,7 +718,7 @@ export const bodyFront = (p: Pen, o: Outfit, opts: FrontOpts) => {
       p.poly(rrect(hx - 8 * u, hy - 4 * u, hx + 10 * u, hy + 22 * u, 3 * u), "#1d1b22", 1.4 * u);
       p.stroke(curve([hx - 10 * u, hy + 8 * u], [hx - 40 * u, hy + 60 * u], [hx - 30 * u, hy + 140 * u]), 7 * u, "#2f4a8a");
       p.dot(hx, hy, 5.5 * u);
-    } else if (prop === "nose") p.dot(hx, hy, 5.5 * u);
+    } else if (prop === "nose" || prop === "wheel") p.dot(hx, hy, 5.5 * u);
     else if (prop === "point") p.dot(hx, hy, 5.5 * u);
   }
   if (prop === "shako") { // carried by the left hand

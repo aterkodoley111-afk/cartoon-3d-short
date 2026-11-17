@@ -97,6 +97,14 @@ SKILL.md, so the next video starts from a better place. SKILL.md holds the disti
   textured grass blades, turf and asphalt textures. Bug found: sin()-hash placement made grass and turf into stripes;
   replaced with an integer hash. Test sheets in templates/real/.
 
+### Feedback: "more details for the driver inside the car; find anything else missing"
+- Driver card: new `prop: "wheel"` (hands at ten-to-two on a drawn rim, turned by `steer`) + `belt` (seatbelt with
+  buckle) in toon.ts; seatWorld() + steer() in realism.ts. Found while testing: dark glass made the driver a
+  silhouette (tint lightened, opacity 0.7 -> 0.42); a tall dashboard hid his face (lowered); only the head cleared the
+  window line (cabin 1.45 -> 1.52 m, card sole + 0.04, scale 0.7). Also added sky reflections on paint/glass/chrome,
+  contact shadow, gauges, mirror, visors, gear lever, belts, tailpipe. Remaining: hands hidden straight through the
+  windscreen -> camera rule (side window / inside 3/4 for driving close-ups).
+
 ---
 
 ## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16
