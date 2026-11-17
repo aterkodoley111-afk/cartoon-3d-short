@@ -105,6 +105,16 @@ SKILL.md, so the next video starts from a better place. SKILL.md holds the disti
   contact shadow, gauges, mirror, visors, gear lever, belts, tailpipe. Remaining: hands hidden straight through the
   windscreen -> camera rule (side window / inside 3/4 for driving close-ups).
 
+### Feedback: "the driver's half body is stuck somewhere, the seats don't appear fully; add details everywhere"
+- Cause: the car's lower body was one solid extrusion; the door top was a lid at the window line that cut the driver
+  and buried the seats. Fix: hollow shell (two side skins with the arches + nose and boot blocks cut with clipX() +
+  rocker sills), cabin tub (carpet, footwells, firewall, tunnel), door trims (armrests, pulls, speakers, top trim),
+  complete seats (runners, bolsters, stitched fabric, headrests on posts), rear bench, centre console, pedals.
+  Result (templates/real/test_cabin.jpg): driver's whole upper body, belt, hands on the wheel, gear lever and seats
+  visible through the side glass.
+- New SKILL.md "REALISM CHECKLIST for every scene" covering vehicles, people in vehicles, buildings, street, nature,
+  liquids/effects, interiors, light, motion and scale.
+
 ---
 
 ## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16

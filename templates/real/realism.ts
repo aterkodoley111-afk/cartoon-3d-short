@@ -92,7 +92,7 @@ export class Pour {
 
 // ======================================================================= vehicles
 type Mats = { body: THREE.Material; glass: THREE.Material; trim: THREE.Material; tyre: THREE.Material; hub: THREE.Material; light: THREE.Material; seat: THREE.Material; interior: THREE.Material;
-  side?: THREE.Material; blur?: THREE.Material; gauge?: THREE.Material; chrome?: THREE.Material; lens?: THREE.Material; tail?: THREE.Material; plateF?: THREE.Material; plateR?: THREE.Material; rubber?: THREE.Material; amber?: THREE.Material };
+  side?: THREE.Material; blur?: THREE.Material; gauge?: THREE.Material; carpet?: THREE.Material; doorCard?: THREE.Material; seatInsert?: THREE.Material; chrome?: THREE.Material; lens?: THREE.Material; tail?: THREE.Material; plateF?: THREE.Material; plateR?: THREE.Material; rubber?: THREE.Material; amber?: THREE.Material };
 
 // ---------------- painted textures for real-looking cars (deterministic canvases) ----------------
 const ctx = (w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) => {
@@ -136,6 +136,17 @@ export const plateTex = (rear: boolean) => ctx(256, 56, (g) => {
   g.fillStyle = rear ? "#f2c80f" : "#f4f4ef"; g.fillRect(0, 0, 256, 56);
   g.fillStyle = "#2c4fa0"; g.fillRect(0, 0, 22, 56); g.strokeStyle = "#222"; g.lineWidth = 3; g.strokeRect(2, 2, 252, 52);
 });
+/** seat fabric (woven, stitched panels) or carpet (fine tufts) */
+export const fabricTex = (base: string, carpet = false) => { const t = ctx(256, 256, (g) => {
+  g.fillStyle = base; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < (carpet ? 5000 : 2200); i++) { g.fillStyle = hash(i, 101) > 0.5 ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.1)"; g.fillRect(hash(i, 102) * 256, hash(i, 103) * 256, carpet ? 1.5 : 3, carpet ? 1.5 : 1); }
+  if (!carpet) { g.strokeStyle = "rgba(0,0,0,0.35)"; g.setLineDash([4, 3]); g.lineWidth = 2; for (const y of [64, 128, 192]) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); } }
+}); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; };
+/** door card: upper vinyl, a fabric insert band, a lower carpeted strip */
+export const doorCardTex = () => ctx(256, 128, (g) => {
+  g.fillStyle = "#34323a"; g.fillRect(0, 0, 256, 128); g.fillStyle = "#4a4e5c"; g.fillRect(0, 30, 256, 46);
+  g.strokeStyle = "rgba(0,0,0,0.4)"; g.setLineDash([3, 3]); g.strokeRect(2, 30, 252, 46); g.fillStyle = "#26252a"; g.fillRect(0, 96, 256, 32);
+});
 /** reflection environment (equirectangular): bright sky, glowing horizon, warm ground. Real paint, glass and chrome
  *  read as real mostly because they reflect their surroundings. Pass `golden` for sunset scenes. */
 export const skyEnv = (golden = false) => { const t = ctx(512, 256, (g) => {
@@ -163,10 +174,25 @@ export const carMaterials = (paint: string, golden = false): Mats => {
     amber: P("#f08a1c", { emissive: new THREE.Color("#3a1a00"), shininess: 90 }),
     plateF: P("#ffffff", { map: plateTex(false) }), plateR: P("#ffffff", { map: plateTex(true) }),
     seat: P("#3a3f4a", { shininess: 10 }), interior: P("#2e2c30", { shininess: 10 }),
+    seatInsert: P("#ffffff", { map: fabricTex("#4a5060"), shininess: 6 }), carpet: P("#ffffff", { map: fabricTex("#2a2a2e", true), shininess: 2 }),
+    doorCard: P("#ffffff", { map: doorCardTex(), shininess: 8 }),
     gauge: P("#101014", { emissive: new THREE.Color("#7fd0ff"), emissiveIntensity: 0.5 }),
   };
 };
 /** side profile (x along the vehicle, y up) extruded across the width with rounded bevel edges */
+/** clip a closed polygon to xmin <= x <= xmax (Sutherland-Hodgman), for cutting nose / boot blocks out of a profile */
+const clipX = (poly: [number, number][], xmin: number, xmax: number): [number, number][] => {
+  const cut = (pts: [number, number][], inside: (p: [number, number]) => boolean, xx: number) => {
+    const out: [number, number][] = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length], ia = inside(a), ib = inside(b);
+      if (ia) out.push(a);
+      if (ia !== ib) { const t = (xx - a[0]) / (b[0] - a[0]); out.push([xx, a[1] + t * (b[1] - a[1])]); }
+    }
+    return out;
+  };
+  return cut(cut(poly, (p) => p[0] >= xmin, xmin), (p) => p[0] <= xmax, xmax);
+};
 /** NOTE: the bevel grows the outline by `bevel` on every side: the real surface is `bevel` outside the points. Place
  *  anything that sits on the surface (lamps, plates, grilles) with that offset along the surface normal. */
 const profileBody = (pts: [number, number][], width: number, bevel: number, mat: THREE.Material) => {
@@ -240,7 +266,15 @@ export const car = (m: Mats, o: { L?: number; W?: number; H?: number } = {}): Ve
   // ---- lower body: wheel-arch cut-outs, sloped nose, bonnet rising to the scuttle, boot lid, rear valance
   const arch = (cx: number) => { const p: [number, number][] = []; for (let i = 0; i <= 14; i++) { const a = Math.PI - (i / 14) * Math.PI; p.push([cx + Math.cos(a) * (ar + 0.16), h0 + 0.14 + Math.sin(a) * (ar + 0.16)]); } return p; }; // +0.09 bevel -> 7 cm clearance
   const lower: [number, number][] = [[x0 + 0.12, h0 + 0.14], ...arch(xr), ...arch(xf), [x1 - 0.12, h0 + 0.14], [x1, h0 + 0.3], [x1 + 0.01, h0 + 0.45], [x1 - 0.12, h0 + 0.64], [x1 - 0.95, belt - 0.02], [x0 + 0.45, belt], [x0 + 0.05, h0 + 0.7], [x0, h0 + 0.42], [x0 + 0.04, h0 + 0.22]];
-  const shell = profileBody(lower, Wd, 0.09, m.body); body.add(shell);
+  // HOLLOW shell (a real car is open from the floor up between the bulkheads; a solid block swallowed the seats and
+  // the driver's body at the window line): two side skins with the arches, a nose block (front of the windscreen
+  // base) and a boot block (behind the rear screen), the cabin left open between them.
+  const xA = x1 - 0.95, xC = x0 + 0.95, B = 0.09, skinW = 0.2, zd_ = 0.38;
+  for (const s1 of [1, -1]) { const sk = profileBody(lower, skinW, B, m.body); sk.position.z = s1 * (Wd / 2 - skinW / 2); body.add(sk); }
+  const nose = profileBody(clipX(lower, xA - 0.06, 99), Wd - 0.1, B, m.body); body.add(nose);
+  const boot = profileBody(clipX(lower, -99, xC + 0.12), Wd - 0.1, B, m.body); body.add(boot);
+  // sills under the doors close the bottom of the cabin between the arches (rocker panels)
+  const sillB = new THREE.Mesh(new THREE.BoxGeometry(xA - xC + 0.2, 0.12, Wd - 0.3), m.body); sillB.position.set((xA + xC) / 2, h0 + 0.18, 0); body.add(sillB);
   // ---- greenhouse: HOLLOW like a real car (roof on A/B/C pillars, glass between them), so the windscreen shows its
   // texture and reflections and the seats / driver are visible through the glass. (A solid cabin hid the screens.)
   const xa = x1 - 0.95, xc = x0 + 0.95, roof = H, hz = (Wd - 0.16) / 2, xm = (xa + xc) / 2 - 0.05, top = roof - 0.05;
@@ -299,11 +333,49 @@ export const car = (m: Mats, o: { L?: number; W?: number; H?: number } = {}): Ve
     const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.52, 0.11).rotateY(Math.sign(x) * Math.PI / 2), plate ?? m.light); pl.position.set(x - Math.sign(x) * 0.03 + Math.sign(x) * 0.095, h0 + 0.22, 0); body.add(pl); // bumper face = centre + 0.06 + 0.03 bevel
   }
   // ---- interior: floor, dashboard with instrument binnacle, steering wheel on its column, seats with headrests
-  const fl = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.05, Wd - 0.2), m.interior); fl.position.set(-0.2, h0 + 0.25, 0); body.add(fl);
+  // cabin tub: carpeted floor, front footwells under the dash, bulkhead (firewall), rear seat base, door trims with
+  // armrests + pulls + speaker grilles, a top trim on each door at the window line (finishes the "cut" edge)
+  const carpet = (m.carpet ?? m.interior);
+  const fl = new THREE.Mesh(new THREE.BoxGeometry(xA - xC + 0.1, 0.05, Wd - 0.38), carpet); fl.position.set((xA + xC) / 2, h0 + 0.26, 0); body.add(fl);
+  const fw = new THREE.Mesh(new THREE.BoxGeometry(0.06, belt - h0 - 0.3, Wd - 0.38), m.interior); fw.position.set(xA - 0.1, (belt + h0 + 0.2) / 2, 0); body.add(fw);
+  const tunnel = new THREE.Mesh(new THREE.BoxGeometry(xA - xC - 0.3, 0.12, 0.22), carpet); tunnel.position.set((xA + xC) / 2, h0 + 0.33, 0); body.add(tunnel);
+  for (const s1 of [1, -1]) {
+    const zi = s1 * (Wd / 2 - skinW - 0.005);
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(xA - xC - 0.1, belt - h0 - 0.28, 0.03), m.doorCard ?? m.interior); trim.position.set((xA + xC) / 2, (belt + h0 + 0.28) / 2, zi); body.add(trim);
+    const topT = new THREE.Mesh(new THREE.BoxGeometry(xA - xC - 0.05, 0.03, skinW + 0.04), m.interior); topT.position.set((xA + xC) / 2, belt - 0.005, s1 * (Wd / 2 - skinW / 2)); body.add(topT);
+    for (const xs of [xA - 0.75, xA - 1.75]) {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.05, 0.08), m.seat); arm.position.set(xs, belt - 0.24, zi - s1 * 0.05); body.add(arm);
+      const pull = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.025, 0.03), m.chrome ?? m.trim); pull.position.set(xs + 0.12, belt - 0.12, zi - s1 * 0.025); body.add(pull);
+      const spk = new THREE.Mesh(new THREE.CircleGeometry(0.07, 20).rotateY(s1 > 0 ? Math.PI : 0), m.trim); spk.position.set(xs - 0.1, h0 + 0.42, zi - s1 * 0.017); body.add(spk);
+    }
+  }
   const dash = profileBody([[0, 0], [0.42, 0], [0.42, 0.04], [0.12, 0.11], [0, 0.1]], Wd - 0.24, 0.02, m.interior); dash.position.set(xa - 0.5, belt - 0.1, 0); body.add(dash); // low dash: the driver's face shows through the windscreen
-  const seat = (x: number, z: number) => { const g = new THREE.Group(); const c = profileBody([[-0.25, 0], [0.25, 0.02], [0.25, 0.12], [-0.25, 0.1]], 0.5, 0.04, m.seat); c.position.y = h0 + 0.36; const bk = profileBody([[-0.06, 0], [0.06, 0], [0.0, 0.62], [-0.12, 0.62]], 0.5, 0.05, m.seat); bk.position.set(-0.26, h0 + 0.46, 0); const hr = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.17, 0.27), m.seat); hr.position.set(-0.34, h0 + 1.16, 0); g.add(c, bk, hr); g.position.set(x, 0, z); body.add(g); };
+  // a complete car seat: runners + base frame, cushion with raised side bolsters, reclined back with side bolsters and
+  // a stitched centre panel, headrest on two chrome posts
+  const seat = (x: number, z: number) => {
+    const g = new THREE.Group(), cs = m.seatInsert ?? m.seat;
+    for (const dz of [-0.17, 0.17]) { const rn = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.03, 0.03), m.trim); rn.position.set(0, h0 + 0.3, dz); g.add(rn); }
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.08, 0.44), m.trim); base.position.set(0, h0 + 0.36, 0); g.add(base);
+    const c = profileBody([[-0.24, 0], [0.24, 0.02], [0.25, 0.1], [-0.22, 0.08]], 0.46, 0.04, cs); c.position.y = h0 + 0.4; g.add(c);
+    for (const dz of [-0.21, 0.21]) { const bol = profileBody([[-0.22, 0], [0.22, 0.02], [0.2, 0.15], [-0.2, 0.13]], 0.08, 0.03, m.seat); bol.position.set(0, h0 + 0.4, dz); g.add(bol); }
+    const bk = profileBody([[-0.06, 0], [0.06, 0], [0.0, 0.6], [-0.12, 0.6]], 0.46, 0.05, cs); bk.position.set(-0.26, h0 + 0.48, 0); g.add(bk);
+    for (const dz of [-0.22, 0.22]) { const bb = profileBody([[-0.06, 0], [0.08, 0], [0.02, 0.55], [-0.1, 0.55]], 0.08, 0.03, m.seat); bb.position.set(-0.25, h0 + 0.5, dz); g.add(bb); }
+    for (const dz of [-0.07, 0.07]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.1, 8), m.chrome ?? m.trim); post.position.set(-0.36, h0 + 1.1, dz); g.add(post); }
+    const hr = profileBody([[-0.05, 0], [0.05, 0], [0.04, 0.16], [-0.05, 0.16]], 0.26, 0.03, m.seat); hr.position.set(-0.37, h0 + 1.13, 0); g.add(hr);
+    g.position.set(x, 0, z); body.add(g);
+  };
+  // centre console between the front seats: armrest bin, gear lever gaiter, cup holders, handbrake
+  const cons = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.2, 0.2), m.interior); cons.position.set(xA - 1.15, h0 + 0.45, 0); body.add(cons);
+  const armr = profileBody([[-0.15, 0], [0.15, 0], [0.13, 0.06], [-0.15, 0.06]], 0.2, 0.02, m.seat); armr.position.set(xA - 1.4, h0 + 0.56, 0); body.add(armr);
+  for (const dx of [-0.05, 0.05]) { const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.01, 16), m.trim); cup.position.set(xA - 1.0 + dx, h0 + 0.556, 0); body.add(cup); }
+  const hb = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.04), m.trim); hb.position.set(xA - 1.12, h0 + 0.58, 0); hb.rotation.z = 0.25; body.add(hb);
+  // rear bench: one wide cushion + back (three places)
+  const rb = profileBody([[-0.24, 0], [0.24, 0.02], [0.25, 0.1], [-0.22, 0.08]], Wd - 0.45, 0.04, m.seatInsert ?? m.seat); rb.position.set(xA - 1.85, h0 + 0.38, 0); body.add(rb);
+  const rbb = profileBody([[-0.06, 0], [0.06, 0], [0.0, 0.58], [-0.12, 0.58]], Wd - 0.45, 0.05, m.seatInsert ?? m.seat); rbb.position.set(xA - 2.12, h0 + 0.46, 0); body.add(rbb);
+  // pedals in the driver footwell
+  for (const dz of [-0.12, 0, 0.12]) { const pd = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.09, 0.07), m.trim); pd.position.set(xA - 0.22, h0 + 0.38, zd_ + dz); pd.rotation.z = -0.4; body.add(pd); }
   const zd = 0.38, xd = xa - 0.85;
-  seat(xd, zd); seat(xd, -zd); seat(xd - 0.95, zd); seat(xd - 0.95, -zd);
+  seat(xd, zd); seat(xd, -zd);
   const sw = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.022, 10, 32), m.trim); sw.position.set(xa - 0.42, belt + 0.12, zd); sw.rotation.set(0, Math.PI / 2, 0); sw.rotateX(0); sw.rotation.z = 0.45; body.add(sw);
   const hubw = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 16).rotateZ(Math.PI / 2 + 0.45), m.trim); hubw.position.copy(sw.position); body.add(hubw);
   const col = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.38, 10), m.trim); col.position.set(xa - 0.28, belt + 0.03, zd); col.rotation.z = 1.12; body.add(col);

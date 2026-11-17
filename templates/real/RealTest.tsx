@@ -39,7 +39,7 @@ const Inner: React.FC<{ view: number }> = ({ view }) => {
   const x = -12 + SPEED * t; w.c.root.position.x = x; drive(w.c, SPEED * t, t, 0, 1, SPEED); steer(w.c, 0.04);
   const sp = seatWorld(w.c, w.c.seats.driver); w.drv.position.set(sp.x - 0.05, sp.y + 0.04, sp.z);
   w.drv.rotation.y = Math.atan2(camera.position.x - sp.x, camera.position.z - sp.z);
-  const cams: [number[], number[]][] = [[[x + 4.2, 1.3, -1.1], [x + 0.4, 1.12, -1.22]], [[x - 0.3, 1.3, 1.9], [x - 0.15, 1.08, -1.3]], [[x + 6.5, 1.8, 3.8], [x, 0.8, -1.6]], [[x - 5.5, 1.3, 2.4], [x - 1.5, 0.6, -1.6]]];
+  const cams: [number[], number[]][] = [[[x + 4.2, 1.3, -1.1], [x + 0.4, 1.12, -1.22]], [[x - 0.3, 1.3, 1.9], [x - 0.15, 1.08, -1.3]], [[x + 6.5, 1.8, 3.8], [x, 0.8, -1.6]], [[x + 0.3, 2.25, 1.2], [x + 0.1, 0.75, -1.35]]];
   const [pp, lk] = cams[view];
   camera.position.set(pp[0], pp[1], pp[2]); camera.lookAt(lk[0], lk[1], lk[2]);
   return <primitive object={w.g} />;

@@ -293,6 +293,37 @@ Use `templates/real/realism.ts` (tested in `templates/real/RealTest.tsx`, sheet 
 - Before a full render, render 3-4 test stills of every new real object/effect in RealTest-style isolation and look
   at them against a reference photo.
 
+## REALISM CHECKLIST for every scene of every video (user: "add details for everything throughout the entire video;
+## every generation must look more real than the previous one")
+Go through this list per shot while building the world, and again in the verifier prompt. Anything that exists in
+the real place but is missing, or is a plain box/card where the real thing has shape, is a defect.
+- **Vehicles** (`car()`/`bus()`): real dimensions; rounded body; HOLLOW cabin (side skins, nose + boot blocks, open
+  tub) with carpet, footwells, firewall, door trims (armrest, pull, speaker), complete seats (runners, cushion and back
+  bolsters, stitched fabric, headrest on posts), rear bench, centre console (armrest, cup holders, handbrake, gear
+  lever), dashboard with glowing gauges, rear-view mirror, sun visors, seatbelts; light-tint reflective glass; lamps,
+  grille, plates, mirrors, door lines, handles, wipers, tailpipe; tread + sidewall tyres, alloys; contact shadow;
+  wheels spin, motion blur at speed, suspension bob, pitch on braking, front wheels steer.
+- **People in vehicles**: seated on seat anchors, belt on, hands on the wheel (driver) or on laps/phones/grab poles
+  (passengers), riding the bob; full upper body visible through the glass (sheet `templates/real/test_cabin.jpg`).
+- **Buildings**: inset windows with frames, sills, lintels, glass reflections, some curtains/blinds, doors with steps,
+  shopfronts with stock behind glass, gutters, downpipes, drainpipes, chimney pots, roof pitch, weathering at the
+  base, signs WITHOUT readable text, lit windows at dusk.
+- **Street**: asphalt with aggregate and patches, painted markings and kerb edge (painted, never inked), drains,
+  manholes, bollards, lamp posts (only outside the middle third of wides), bins, benches, bus stops, trees in pits,
+  parked cars, pedestrians walking (not frozen), traffic moving.
+- **Nature**: `tree()` with bark, branches, translucent leaves; `grassField()` blades; bushes/hedges; all swaying in
+  WIND with gusts; fallen leaves; soil/turf textures; water with ripples, reflections, foam at edges.
+- **Liquids & effects**: `Pour` (ballistic, splash, rings, slick); smoke rises, spreads and drifts with the wind;
+  dust kicks up under wheels/feet; splashes are 3D droplets, not flat cards.
+- **Interiors** (rooms, sets, inserts): furniture with legs/handles, skirting, light switches, sockets, pictures, a
+  ceiling with a light fitting, floor texture (boards/tiles), objects on surfaces, a window with a view.
+- **Light & air**: shadows from every object (contact shadows at least), reflections on glossy surfaces (`skyEnv`),
+  sky with clouds, haze with distance, sun position consistent within a scene, warm interiors at dusk.
+- **Motion**: everything that moves in reality moves: wheels, leaves, grass, water, smoke, flags, people breathing
+  and blinking, doors on hinges. A frozen element in a living place reads fake.
+- **Scale**: check every object against a 1.7 m adult in frame; real structures keep their real size.
+- Each video's LESSONS.md entry lists what it added in realism compared with the previous video.
+
 ## Flicker traps (swiftshader render; measured with tools/flicker.py)
 - Transparent depthWrite:false meshes (glass cases) behind/in front of lens-blurred subjects stair-step and change
   every frame: leave glass out, draw only the frame edges.
