@@ -89,6 +89,14 @@ SKILL.md, so the next video starts from a better place. SKILL.md holds the disti
   on the profile points were buried inside the body and the wheel arches were 9 cm too tight. Fixed by offsetting
   along the surface normal; noted in profileBody(). Test sheets: templates/real/test_sheet_car.jpg.
 
+### Feedback: "front glass has no texture; real environment, tyre texture while driving, grass/trees/leaves + motion"
+- Cause of the plain windscreen: the cabin was a solid extrusion and the screens sat inside its bevel. Rebuilt the
+  greenhouse hollow (roof + A/B/C pillars + glass quads + headliner/door cards): the windscreen shows its reflections
+  and the interior is visible.
+- Added tread/sidewall textures, a speed-driven wheel motion-blur disc, tree() with bark/branches/leaf cards + wind,
+  textured grass blades, turf and asphalt textures. Bug found: sin()-hash placement made grass and turf into stripes;
+  replaced with an integer hash. Test sheets in templates/real/.
+
 ---
 
 ## Video 4: The Mountain That Suddenly Disappeared (Hope Slide, BC 1965), 2026-11-16

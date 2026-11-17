@@ -17,7 +17,9 @@ import * as THREE from "three";
 
 const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 const sm = (x: number) => { const u = Math.max(0, Math.min(1, x)); return u * u * (3 - 2 * u); };
-const hash = (i: number, s = 0) => { const v = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return v - Math.floor(v); };
+/** integer hash -> [0, 1) (murmur-style mix): no lattice / row patterns for thousands of sequential instances
+ *  (a sin()-based hash put the grass blades into visible stripes) */
+const hash = (i: number, s = 0) => { let h = (Math.imul((i | 0) ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul((s | 0) + 0x632be5ab, 0xc2b2ae35)) >>> 0; h ^= h >>> 16; h = Math.imul(h, 0x7feb352d) >>> 0; h ^= h >>> 15; h = Math.imul(h, 0x846ca68b) >>> 0; h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 
 // ======================================================================= liquid pour
 export type PourOpts = {
@@ -90,7 +92,7 @@ export class Pour {
 
 // ======================================================================= vehicles
 type Mats = { body: THREE.Material; glass: THREE.Material; trim: THREE.Material; tyre: THREE.Material; hub: THREE.Material; light: THREE.Material; seat: THREE.Material; interior: THREE.Material;
-  chrome?: THREE.Material; lens?: THREE.Material; tail?: THREE.Material; plateF?: THREE.Material; plateR?: THREE.Material; rubber?: THREE.Material; amber?: THREE.Material };
+  side?: THREE.Material; blur?: THREE.Material; chrome?: THREE.Material; lens?: THREE.Material; tail?: THREE.Material; plateF?: THREE.Material; plateR?: THREE.Material; rubber?: THREE.Material; amber?: THREE.Material };
 
 // ---------------- painted textures for real-looking cars (deterministic canvases) ----------------
 const ctx = (w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) => {
@@ -105,10 +107,29 @@ export const glassTex = () => ctx(256, 256, (g) => {
   for (const [x, w, a] of [[40, 34, 0.32], [110, 12, 0.22], [150, 50, 0.12]] as const) { const s = g.createLinearGradient(x, 0, x + w, 0); s.addColorStop(0, "rgba(255,255,255,0)"); s.addColorStop(0.5, `rgba(255,255,255,${a})`); s.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = s; g.fillRect(x, -100, w, 600); }
   g.restore();
 });
-/** tyre: tread blocks around the circumference (u) and a sidewall shade */
-export const tyreTex = () => ctx(512, 64, (g) => {
-  g.fillStyle = "#1c1b1f"; g.fillRect(0, 0, 512, 64);
-  for (let x = 0; x < 512; x += 16) { g.fillStyle = "#121115"; g.fillRect(x, 6, 7, 52); g.fillStyle = "#2a292e"; g.fillRect(x + 8, 20, 6, 24); }
+/** tyre tread: chevron blocks + a centre rib + sipes around the circumference (u) - shows the roll when it turns */
+export const tyreTex = () => ctx(1024, 128, (g) => {
+  g.fillStyle = "#232227"; g.fillRect(0, 0, 1024, 128);
+  for (let x = 0; x < 1024; x += 32) {
+    g.fillStyle = "#121115";
+    g.beginPath(); g.moveTo(x, 8); g.lineTo(x + 12, 8); g.lineTo(x + 22, 52); g.lineTo(x + 10, 52); g.fill();           // chevron groove
+    g.beginPath(); g.moveTo(x + 10, 76); g.lineTo(x + 22, 76); g.lineTo(x + 12, 120); g.lineTo(x, 120); g.fill();
+    g.fillStyle = "#3a383f"; g.fillRect(x + 24, 14, 3, 32); g.fillRect(x + 24, 82, 3, 32);                             // sipes catch light
+  }
+  g.fillStyle = "#151418"; g.fillRect(0, 58, 1024, 12);                                                                  // centre groove
+});
+/** tyre sidewall: rubber with raised marks and a lighter rim band (no lettering) - the marks show the spin */
+export const sideTex = () => ctx(1024, 64, (g) => {
+  g.fillStyle = "#1f1e22"; g.fillRect(0, 0, 1024, 64);
+  for (let x = 0; x < 1024; x += 64) { g.fillStyle = "#33313a"; g.fillRect(x + 10, 20, 28, 6); g.fillRect(x + 44, 20, 8, 6); }
+  g.fillStyle = "#2b2a30"; g.fillRect(0, 50, 1024, 6);
+});
+/** motion-blurred wheel face for fast spin (radial streak gradient), alpha 0 at the centre cap */
+export const blurTex = () => ctx(256, 256, (g) => {
+  const gr = g.createRadialGradient(128, 128, 18, 128, 128, 128);
+  gr.addColorStop(0, "rgba(200,205,212,0.0)"); gr.addColorStop(0.18, "rgba(200,205,212,0.9)"); gr.addColorStop(0.75, "rgba(150,156,164,0.85)"); gr.addColorStop(0.9, "rgba(210,214,220,0.95)"); gr.addColorStop(1, "rgba(30,30,34,0.0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  for (let a = 0; a < 360; a += 4) { g.strokeStyle = `rgba(255,255,255,${0.05 + 0.08 * ((a * 7) % 3)})`; g.lineWidth = 1.5; g.beginPath(); g.arc(128, 128, 30 + (a % 90), (a * Math.PI) / 180, ((a + 40) * Math.PI) / 180); g.stroke(); }
 });
 /** UK number plates: white front / yellow rear, black border band, no lettering (no text in the video) */
 export const plateTex = (rear: boolean) => ctx(256, 56, (g) => {
@@ -122,7 +143,8 @@ export const carMaterials = (paint: string): Mats => {
     body: P(paint, { specular: "#ffffff", shininess: 70 }),
     glass: P("#ffffff", { map: glassTex(), transparent: true, opacity: 0.82, specular: "#ffffff", shininess: 120, side: THREE.DoubleSide }),
     trim: P("#1d1c20", { specular: "#333", shininess: 20 }), rubber: P("#141316", { shininess: 5 }),
-    tyre: P("#ffffff", { map: tyreTex(), shininess: 8 }), hub: P("#c5cad1", { specular: "#ffffff", shininess: 90 }),
+    tyre: P("#ffffff", { map: tyreTex(), shininess: 8 }), side: P("#ffffff", { map: sideTex(), shininess: 12 }),
+    blur: new THREE.MeshBasicMaterial({ map: blurTex(), transparent: true, depthWrite: false, opacity: 0 }), hub: P("#c5cad1", { specular: "#ffffff", shininess: 90 }),
     chrome: P("#d9dde3", { specular: "#ffffff", shininess: 140 }),
     light: P("#fff6d8", { emissive: new THREE.Color("#fff1c0"), emissiveIntensity: 0.6, specular: "#fff", shininess: 120 }),
     lens: P("#ffffff", { transparent: true, opacity: 0.35, specular: "#ffffff", shininess: 150 }),
@@ -164,8 +186,11 @@ const lamp = (w: number, h: number, kind: "head" | "tail", m: Mats) => {
 const wheel = (r: number, w: number, m: Mats) => {
   const g = new THREE.Group();
   // tyre: tread band (textured cylinder) + rounded sidewalls (torus) ; alloy: rim lip, 5 twin spokes, centre cap, nuts
-  const tread = new THREE.Mesh(new THREE.CylinderGeometry(r, r, w * 0.8, 40, 1, true).rotateX(Math.PI / 2), m.tyre); g.add(tread);
-  for (const s of [1, -1]) { const side = new THREE.Mesh(new THREE.TorusGeometry(r * 0.83, r * 0.17, 10, 36), m.rubber ?? m.tyre); side.position.z = s * w * 0.36; g.add(side); }
+  const tg = new THREE.CylinderGeometry(r, r, w * 0.8, 48, 1, true).rotateX(Math.PI / 2); const tuv = tg.attributes.uv; for (let i = 0; i < tuv.count; i++) tuv.setX(i, tuv.getX(i) * 3); // 3 tread repeats round
+  const tm = (m.tyre as THREE.MeshPhongMaterial).map; if (tm) { tm.wrapS = THREE.RepeatWrapping; }
+  const tread = new THREE.Mesh(tg, m.tyre); g.add(tread);
+  for (const s of [1, -1]) { const side = new THREE.Mesh(new THREE.TorusGeometry(r * 0.83, r * 0.17, 12, 48), m.side ?? m.rubber ?? m.tyre); side.position.z = s * w * 0.36; g.add(side); }
+  if (m.blur) for (const s of [1, -1]) { const bd = new THREE.Mesh(new THREE.CircleGeometry(r * 0.66, 32), m.blur.clone()); bd.position.z = s * w * 0.44; if (s < 0) bd.rotation.y = Math.PI; bd.name = "blur"; g.add(bd); }
   const hub = new THREE.Group(); g.add(hub);
   for (const s of [1, -1]) {
     const lip = new THREE.Mesh(new THREE.TorusGeometry(r * 0.64, r * 0.045, 8, 36), m.chrome ?? m.hub); lip.position.z = s * w * 0.42; hub.add(lip);
@@ -190,34 +215,49 @@ export const car = (m: Mats, o: { L?: number; W?: number; H?: number } = {}): Ve
   const arch = (cx: number) => { const p: [number, number][] = []; for (let i = 0; i <= 14; i++) { const a = Math.PI - (i / 14) * Math.PI; p.push([cx + Math.cos(a) * (ar + 0.16), h0 + 0.14 + Math.sin(a) * (ar + 0.16)]); } return p; }; // +0.09 bevel -> 7 cm clearance
   const lower: [number, number][] = [[x0 + 0.12, h0 + 0.14], ...arch(xr), ...arch(xf), [x1 - 0.12, h0 + 0.14], [x1, h0 + 0.3], [x1 + 0.01, h0 + 0.45], [x1 - 0.12, h0 + 0.64], [x1 - 0.95, belt - 0.02], [x0 + 0.45, belt], [x0 + 0.05, h0 + 0.7], [x0, h0 + 0.42], [x0 + 0.04, h0 + 0.22]];
   const shell = profileBody(lower, Wd, 0.09, m.body); body.add(shell);
-  // ---- greenhouse: one rounded profile (windscreen rake, curved roof, rear screen) slightly narrower than the body
-  const xa = x1 - 0.95, xc = x0 + 0.95, roof = H;
-  const gh: [number, number][] = [[xa, belt - 0.02], [xa - 0.5, roof - 0.06], [xa - 0.62, roof], [xc + 0.42, roof], [xc + 0.3, roof - 0.06], [xc, belt]];
-  const cabin = profileBody(gh, Wd - 0.16, 0.07, m.body); body.add(cabin);
-  // window openings: glass slightly proud of the cabin sides, black rubber surround, chrome strip on the sill
-  const pane = (pts: [number, number][], z: number, flip: boolean) => {
-    const sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))); const geo = new THREE.ShapeGeometry(sh, 8);
-    const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) - xc) / (xa - xc), (uv.getY(i) - belt) / (roof - belt)); // glass texture across the window
-    if (flip) geo.scale(1, 1, -1);
-    const gm = new THREE.Mesh(geo, m.glass); gm.position.z = z; body.add(gm);
-    const edge = new THREE.Mesh(new THREE.ShapeGeometry(sh, 8), m.rubber ?? m.trim); edge.scale.set(1.0, 1.0, 1); edge.position.z = z - Math.sign(z) * 0.002; body.add(edge); // seal shows round the glass
+  // ---- greenhouse: HOLLOW like a real car (roof on A/B/C pillars, glass between them), so the windscreen shows its
+  // texture and reflections and the seats / driver are visible through the glass. (A solid cabin hid the screens.)
+  const xa = x1 - 0.95, xc = x0 + 0.95, roof = H, hz = (Wd - 0.16) / 2, xm = (xa + xc) / 2 - 0.05, top = roof - 0.05;
+  const roofP = profileBody([[xa - 0.62, top], [xc + 0.42, top], [xc + 0.36, roof - 0.01], [xa - 0.56, roof - 0.01]], Wd - 0.16, 0.03, m.body); body.add(roofP);
+  const strut = (A: [number, number], B: [number, number], z: number, t: number, d = 0.06) => {
+    const len = Math.hypot(B[0] - A[0], B[1] - A[1]), s2 = new THREE.Mesh(new THREE.BoxGeometry(t, len, d), m.body);
+    s2.position.set((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, z); s2.rotation.z = -Math.atan2(B[0] - A[0], B[1] - A[1]); body.add(s2);
   };
-  const zs = (Wd - 0.16) / 2 + 0.072, xm = (xa + xc) / 2 - 0.05, top = roof - 0.08;
-  for (const z of [zs, -zs]) {
-    pane([[xa - 0.08, belt + 0.04], [xm + 0.05, belt + 0.04], [xm + 0.05, top], [xa - 0.5, top]], z, z < 0);           // front door window
-    pane([[xm - 0.05, belt + 0.04], [xc + 0.12, belt + 0.04], [xc + 0.32, top], [xm - 0.05, top]], z, z < 0);           // rear door window
-    const sill = new THREE.Mesh(new THREE.BoxGeometry(xa - xc - 0.1, 0.018, 0.01), m.chrome ?? m.trim); sill.position.set((xa + xc) / 2, belt + 0.03, Math.sign(z) * (zs + 0.004)); body.add(sill);
-    // door shut lines (thin dark grooves), handles, side mirror
-    for (const x of [xa + 0.05, xm, xc - 0.02]) { const ln = new THREE.Mesh(new THREE.BoxGeometry(0.008, belt - h0 - 0.2, 0.004), m.rubber ?? m.trim); ln.position.set(x, (belt + h0 + 0.2) / 2, Math.sign(z) * (Wd / 2 + 0.002)); body.add(ln); }
-    for (const x of [xm + 0.3, xc + 0.25]) { const hd = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.03, 0.025), m.chrome ?? m.hub); hd.position.set(x, belt - 0.12, Math.sign(z) * (Wd / 2 + 0.012)); body.add(hd); }
-    const mh = new THREE.Mesh(new THREE.SphereGeometry(0.09, 14, 10).scale(0.8, 0.7, 1.2), m.body); mh.position.set(xa - 0.12, belt + 0.1, Math.sign(z) * (Wd / 2 + 0.06)); body.add(mh);
-    const mg = new THREE.Mesh(new THREE.CircleGeometry(0.06, 16).rotateY(-Math.PI / 2), m.glass); mg.position.set(xa - 0.2, belt + 0.1, Math.sign(z) * (Wd / 2 + 0.07)); body.add(mg);
-    const rub = new THREE.Mesh(new THREE.BoxGeometry(L - 1.6, 0.05, 0.02), m.rubber ?? m.trim); rub.position.set(0, h0 + 0.42, Math.sign(z) * (Wd / 2 + 0.005)); body.add(rub); // side rubbing strip
+  for (const z of [hz, -hz]) {
+    strut([xa, belt], [xa - 0.6, top], z, 0.07);           // A pillar (along the windscreen edge)
+    strut([xm, belt], [xm, top], z, 0.09);                 // B pillar
+    strut([xc + 0.06, belt], [xc + 0.46, top], z, 0.16);   // C pillar (wide, like a saloon)
   }
-  // windscreen + rear screen: raked glass on the cabin ends, wipers on the scuttle
-  const screen = (x: number, rake: number, w: number, hgt: number) => { const geo = new THREE.PlaneGeometry(w, hgt).rotateY(Math.PI / 2).rotateZ(rake); const s = new THREE.Mesh(geo, m.glass); s.position.set(x, (belt + roof) / 2 + 0.01, 0); body.add(s); };
-  screen(xa - 0.29, Math.atan2(0.62, roof - belt), Wd - 0.34, Math.hypot(0.62, roof - belt) - 0.08);
-  screen(xc + 0.2, -Math.atan2(0.42, roof - belt), Wd - 0.4, Math.hypot(0.42, roof - belt) - 0.1);
+  /** glass quad from 4 corners (bl, br, tr, tl) with the glass texture the right way up (sky at the top) */
+  const glassQuad = (bl: THREE.Vector3, br: THREE.Vector3, tr: THREE.Vector3, tl: THREE.Vector3) => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute([bl, br, tr, bl, tr, tl].flatMap((v) => v.toArray()), 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1], 2)); g.computeVertexNormals();
+    const q = new THREE.Mesh(g, m.glass); body.add(q); return q;
+  };
+  // windscreen (raked 46 deg) and rear screen, black rubber frame round both
+  glassQuad(V(xa - 0.02, belt + 0.02, -hz + 0.03), V(xa - 0.02, belt + 0.02, hz - 0.03), V(xa - 0.58, top - 0.01, hz - 0.03), V(xa - 0.58, top - 0.01, -hz + 0.03));
+  glassQuad(V(xc + 0.08, belt + 0.02, hz - 0.08), V(xc + 0.08, belt + 0.02, -hz + 0.08), V(xc + 0.44, top - 0.01, -hz + 0.08), V(xc + 0.44, top - 0.01, hz - 0.08));
+  // side glass between the pillars, seals and chrome sill
+  const zs = hz + 0.035;
+  for (const z of [zs, -zs]) {
+    const s1 = Math.sign(z), P = (x: number, y: number) => V(x, y, z);
+    const f1 = glassQuad(P(xa - 0.06, belt + 0.03), P(xm + 0.05, belt + 0.03), P(xm + 0.05, top - 0.02), P(xa - 0.56, top - 0.02));
+    const f2 = glassQuad(P(xm - 0.05, belt + 0.03), P(xc + 0.16, belt + 0.03), P(xc + 0.42, top - 0.02), P(xm - 0.05, top - 0.02));
+    if (s1 < 0) for (const q of [f1, f2]) q.geometry.scale(1, 1, 1); // double-sided glass material: both sides read
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(xa - xc - 0.1, 0.02, 0.012), m.chrome ?? m.trim); sill.position.set((xa + xc) / 2, belt + 0.02, s1 * (zs + 0.006)); body.add(sill);
+    const seal = new THREE.Mesh(new THREE.BoxGeometry(xa - xc - 0.2, 0.012, 0.01), m.rubber ?? m.trim); seal.position.set((xa + xc) / 2 + 0.05, top - 0.015, s1 * (zs + 0.004)); body.add(seal);
+    // door shut lines (thin dark grooves), handles, side mirror (housing + glass + arm)
+    for (const x of [xa + 0.05, xm, xc - 0.02]) { const ln = new THREE.Mesh(new THREE.BoxGeometry(0.008, belt - h0 - 0.2, 0.004), m.rubber ?? m.trim); ln.position.set(x, (belt + h0 + 0.2) / 2, s1 * (Wd / 2 + 0.002)); body.add(ln); }
+    for (const x of [xm + 0.3, xc + 0.25]) { const hd = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.03, 0.025), m.chrome ?? m.hub); hd.position.set(x, belt - 0.12, s1 * (Wd / 2 + 0.012)); body.add(hd); }
+    const mh = new THREE.Mesh(new THREE.SphereGeometry(0.09, 14, 10).scale(0.8, 0.7, 1.2), m.body); mh.position.set(xa - 0.12, belt + 0.1, s1 * (Wd / 2 + 0.09)); body.add(mh);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.12), m.trim); arm.position.set(xa - 0.08, belt + 0.06, s1 * (Wd / 2 + 0.02)); body.add(arm);
+    const mg = new THREE.Mesh(new THREE.CircleGeometry(0.06, 16).rotateY(-Math.PI / 2).scale(1, 0.8, 1.3), m.glass); mg.position.set(xa - 0.19, belt + 0.1, s1 * (Wd / 2 + 0.09)); body.add(mg);
+    const rub = new THREE.Mesh(new THREE.BoxGeometry(L - 1.6, 0.05, 0.02), m.rubber ?? m.trim); rub.position.set(0, h0 + 0.42, s1 * (Wd / 2 + 0.005)); body.add(rub); // side rubbing strip
+  }
+  // interior trim you see through the glass: headliner under the roof, parcel shelf, door cards
+  const head = new THREE.Mesh(new THREE.PlaneGeometry(xa - xc - 0.5, Wd - 0.3).rotateX(Math.PI / 2), m.interior); head.position.set((xa + xc) / 2 - 0.05, top - 0.01, 0); body.add(head);
+  for (const z of [hz - 0.02, -hz + 0.02]) { const dc = new THREE.Mesh(new THREE.PlaneGeometry(xa - xc, 0.12).rotateY(z > 0 ? Math.PI : 0), m.interior); dc.position.set((xa + xc) / 2, belt + 0.05, z); body.add(dc); }
   for (const dz of [-0.35, 0.25]) { const wp = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.012, 0.55), m.trim); wp.position.set(xa - 0.06, belt + 0.03, dz); wp.rotation.x = 0.2; body.add(wp); }
   // ---- front: headlight units, grille with bars, bumper, plate, fog lamps; rear: tail lights, bumper, plate
   for (const s of [1, -1]) {
@@ -234,7 +274,7 @@ export const car = (m: Mats, o: { L?: number; W?: number; H?: number } = {}): Ve
   }
   // ---- interior: floor, dashboard with instrument binnacle, steering wheel on its column, seats with headrests
   const fl = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.05, Wd - 0.2), m.interior); fl.position.set(-0.2, h0 + 0.25, 0); body.add(fl);
-  const dash = profileBody([[0, 0], [0.42, 0], [0.42, 0.06], [0.1, 0.22], [0, 0.2]], Wd - 0.24, 0.03, m.interior); dash.position.set(xa - 0.5, belt - 0.2, 0); body.add(dash);
+  const dash = profileBody([[0, 0], [0.42, 0], [0.42, 0.06], [0.1, 0.22], [0, 0.2]], Wd - 0.24, 0.03, m.interior); dash.position.set(xa - 0.5, belt - 0.06, 0); body.add(dash);
   const seat = (x: number, z: number) => { const g = new THREE.Group(); const c = profileBody([[-0.25, 0], [0.25, 0.02], [0.25, 0.12], [-0.25, 0.1]], 0.5, 0.04, m.seat); c.position.y = h0 + 0.36; const bk = profileBody([[-0.06, 0], [0.06, 0], [0.0, 0.62], [-0.12, 0.62]], 0.5, 0.05, m.seat); bk.position.set(-0.26, h0 + 0.46, 0); const hr = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.17, 0.27), m.seat); hr.position.set(-0.34, h0 + 1.16, 0); g.add(c, bk, hr); g.position.set(x, 0, z); body.add(g); };
   const zd = 0.38, xd = xa - 0.85;
   seat(xd, zd); seat(xd, -zd); seat(xd - 0.95, zd); seat(xd - 0.95, -zd);
@@ -292,8 +332,10 @@ export const bus = (m: Mats): Vehicle => {
 };
 /** pose a moving vehicle: wheels spin from distance travelled, body bobs on its suspension and pitches with
  *  acceleration (a = d2x/dt2, sampled by the caller), a tiny road-roughness shake. dist in metres. */
-export const drive = (v: Vehicle, dist: number, t: number, accel = 0, rough = 1) => {
-  for (const w of v.wheels) w.rotation.z = -dist / v.wheelR;
+export const drive = (v: Vehicle, dist: number, t: number, accel = 0, rough = 1, speed = 0) => {
+  // wheel spin from distance; above ~4 rad per frame-sample the spokes strobe, so a blurred disc fades in (like film)
+  const dPerFrame = Math.abs(speed) / 30 / v.wheelR, blur = Math.max(0, Math.min(0.92, (dPerFrame - 0.15) / 0.35));
+  for (const w of v.wheels) { w.rotation.z = -dist / v.wheelR; w.traverse((o) => { if (o.name === "blur") ((o as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = blur; }); }
   v.body.position.y = 0.012 * rough * Math.sin(t * 11.3) + 0.008 * rough * Math.sin(t * 17.9 + 1.2);
   v.body.rotation.z = THREE.MathUtils.clamp(-accel * 0.006, -0.03, 0.03) + 0.003 * rough * Math.sin(t * 7.1);
   v.body.rotation.x = 0.002 * rough * Math.sin(t * 9.4);
@@ -321,7 +363,11 @@ export function windSway<T extends THREE.Material>(mat: T, hRef = 1, amp = 0.25,
         #ifdef USE_INSTANCING
           wp = modelMatrix * instanceMatrix * vec4(position, 1.0);
         #endif
-        float h = clamp(position.y / ${hRef.toFixed(3)}, 0.0, 1.0);
+        float yLocal = position.y;
+        #ifdef USE_INSTANCING
+          yLocal = (instanceMatrix * vec4(position, 1.0)).y;            // leaves / blades: height of THIS instance
+        #endif
+        float h = clamp(yLocal / ${hRef.toFixed(3)}, 0.0, 1.0);
         float bend = h * h;                                                   // stiff base, flexible tip
         float phase = dot(wp.xz, wDir) * 0.35 - wTime * 1.6;                  // gust front travelling downwind
         float gust = 0.55 + 0.45 * sin(phase) * sin(phase * 0.37 + 1.3);
@@ -338,15 +384,85 @@ export function windSway<T extends THREE.Material>(mat: T, hRef = 1, amp = 0.25,
 /** real grass: n tapered, slightly curved blades (instanced), random height / lean / colour, swaying in the wind */
 export const grassField = (n: number, area: { x0: number; x1: number; z0: number; z1: number; y?: number }, mat: THREE.MeshLambertMaterial, h = 0.35) => {
   const blade = new THREE.BufferGeometry(), segs = 4, pos: number[] = [], idx: number[] = [];
-  for (let i = 0; i <= segs; i++) { const v = i / segs, w = 0.012 * (1 - v * 0.9), bend = 0.08 * v * v; pos.push(-w, v, bend, w, v, bend); }
+  const uvs: number[] = [];
+  for (let i = 0; i <= segs; i++) { const v = i / segs, w = 0.012 * (1 - v * 0.9), bend = 0.08 * v * v; pos.push(-w, v, bend, w, v, bend); uvs.push(0, v, 1, v); }
   for (let i = 0; i < segs; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-  blade.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); blade.setIndex(idx); blade.computeVertexNormals();
-  const im = new THREE.InstancedMesh(blade, windSway(mat, 1, 0.22, 0.04), n), m4 = new THREE.Matrix4(), c = new THREE.Color();
+  blade.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); blade.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2)); blade.setIndex(idx); blade.computeVertexNormals();
+  if (!mat.map) { mat.map = bladeTex(); mat.color.set("#ffffff"); mat.side = THREE.DoubleSide; }
+  const im = new THREE.InstancedMesh(blade, windSway(mat, h * 1.4, 0.12, 0.03), n), m4 = new THREE.Matrix4(), c = new THREE.Color();
   for (let i = 0; i < n; i++) {
     const x = area.x0 + (area.x1 - area.x0) * hash(i, 1), z = area.z0 + (area.z1 - area.z0) * hash(i, 2), s = h * (0.6 + 0.8 * hash(i, 3));
     m4.compose(V(x, area.y ?? 0, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0.15 * (hash(i, 4) - 0.5), hash(i, 5) * Math.PI * 2, 0.15 * (hash(i, 6) - 0.5))), V(1, s, 1));
-    im.setMatrixAt(i, m4); im.setColorAt(i, c.setHSL(0.27 + 0.05 * hash(i, 7), 0.5, 0.32 + 0.14 * hash(i, 8)));
+    im.setMatrixAt(i, m4); im.setColorAt(i, c.setHSL(0.22 + 0.06 * hash(i, 7), 0.35, 0.72 + 0.28 * hash(i, 8))); // tint x blade texture
   }
   im.receiveShadow = true;
   return im; // put on NOINK: thousands of blades would be a mess of ink lines (the ground is never inked anyway)
+};
+
+// ======================================================================= textures for nature + ground
+/** a grass blade: dark green base -> light yellow-green tip, pale midrib (UV v runs base -> tip) */
+export const bladeTex = () => ctx(32, 128, (g) => {
+  const gr = g.createLinearGradient(0, 128, 0, 0); gr.addColorStop(0, "#2f5a22"); gr.addColorStop(0.6, "#5f9a3a"); gr.addColorStop(1, "#b9cf6a");
+  g.fillStyle = gr; g.fillRect(0, 0, 32, 128); g.fillStyle = "rgba(230,255,190,0.35)"; g.fillRect(15, 0, 2, 128);
+});
+/** one leaf on a transparent card: pointed oval, gradient, midrib + 5 vein pairs, a darker serrated edge */
+export const leafTex = (hue = 0) => ctx(128, 128, (g) => {
+  g.clearRect(0, 0, 128, 128); g.save(); g.translate(64, 64); g.rotate(-0.6);
+  const path = () => { g.beginPath(); g.moveTo(0, -58); g.bezierCurveTo(30, -40, 34, 20, 0, 58); g.bezierCurveTo(-34, 20, -30, -40, 0, -58); };
+  const gr = g.createLinearGradient(-30, -50, 30, 50); gr.addColorStop(0, ["#9ad25a", "#b8c85a", "#86c050"][hue % 3]); gr.addColorStop(1, ["#4a8a36", "#6f8f34", "#40803c"][hue % 3]);
+  path(); g.fillStyle = gr; g.fill(); g.strokeStyle = "rgba(20,50,15,0.8)"; g.lineWidth = 2.5; g.stroke();
+  g.strokeStyle = "rgba(220,255,180,0.6)"; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -54); g.lineTo(0, 62); g.stroke();
+  g.lineWidth = 1.2; for (let i = 0; i < 5; i++) { const y = -36 + i * 18; for (const s of [1, -1]) { g.beginPath(); g.moveTo(0, y); g.quadraticCurveTo(s * 12, y - 2, s * 22, y - 12); g.stroke(); } }
+  g.restore();
+});
+/** tree bark: vertical fissures, plates and a few knots (u around, v up) */
+export const barkTex = () => ctx(256, 512, (g) => {
+  g.fillStyle = "#8a7058"; g.fillRect(0, 0, 256, 512);
+  for (let i = 0; i < 46; i++) { const x = (i * 37) % 256, w = 3 + (i % 4); g.fillStyle = i % 3 ? "#3e2f24" : "#4a382a"; g.beginPath(); g.moveTo(x, 0); for (let y = 0; y <= 512; y += 32) g.lineTo(x + 6 * Math.sin(y * 0.03 + i), y); g.lineTo(x + w, 512); for (let y = 512; y >= 0; y -= 32) g.lineTo(x + w + 6 * Math.sin(y * 0.03 + i), y); g.fill(); }
+  for (let i = 0; i < 60; i++) { g.fillStyle = "rgba(160,140,110,0.25)"; g.fillRect((i * 53) % 256, (i * 97) % 512, 10, 3); }
+  for (let i = 0; i < 4; i++) { g.strokeStyle = "#2e231a"; g.lineWidth = 3; g.beginPath(); g.ellipse((i * 71) % 256, 80 + i * 110, 8, 12, 0, 0, 7); g.stroke(); }
+});
+/** soil with grass tufts (ground under grassField) and real asphalt (aggregate at a size that survives mipmaps) */
+export const turfTex = () => ctx(512, 512, (g) => {
+  g.fillStyle = "#5b7a34"; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 420; i++) { const x = hash(i, 81) * 512, y = hash(i, 82) * 512; g.fillStyle = ["rgba(90,70,40,0.3)", "rgba(120,160,70,0.45)", "rgba(60,90,35,0.45)"][i % 3]; g.beginPath(); g.ellipse(x, y, 8 + 22 * hash(i, 83), 5 + 12 * hash(i, 84), hash(i, 85) * 3, 0, 7); for (const ox of [-512, 512]) g.ellipse(x + ox, y, 8 + 22 * hash(i, 83), 5 + 12 * hash(i, 84), hash(i, 85) * 3, 0, 7); g.fill(); }
+});
+export const asphaltRealTex = () => ctx(1024, 1024, (g) => {
+  g.fillStyle = "#5c5b5d"; g.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 30; i++) { const x = hash(i, 71) * 1024, y = hash(i, 72) * 1024, r = 80 + 160 * hash(i, 73); const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, hash(i, 74) > 0.5 ? "rgba(110,108,106,0.25)" : "rgba(40,40,44,0.22)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r); }
+  for (let i = 0; i < 9000; i++) { g.fillStyle = ["rgba(122,120,118,0.55)", "rgba(70,69,72,0.5)", "rgba(140,136,128,0.4)"][i % 3]; const r = 0.8 + 1.4 * hash(i, 76); g.fillRect(hash(i, 77) * 1024, hash(i, 78) * 1024, r, r); }
+});
+
+// ======================================================================= trees
+export type Tree = { group: THREE.Group; leaves: THREE.InstancedMesh; trunk: THREE.Mesh };
+/** a broadleaf tree from real proportions (h ~ 6-12 m): tapered, slightly bent bark trunk, 5-7 branches from ~45 %
+ *  height, foliage = hundreds of textured leaf cards clustered at branch ends (alpha-tested, NOINK), all swaying in
+ *  WIND (trunk barely, branch tips more, leaves flutter). seed varies the shape. */
+export const tree = (h = 8, seed = 1, mats?: { bark?: THREE.Material; leaf?: THREE.Material }): Tree => {
+  const g = new THREE.Group(), R = (k: number) => hash(seed * 13 + k, seed);
+  const bark = mats?.bark ?? windSway(new THREE.MeshLambertMaterial({ map: barkTex() }), h, 0.04, 0.0);
+  const tg = new THREE.CylinderGeometry(h * 0.022, h * 0.04, h * 0.62, 14, 10).translate(0, h * 0.31, 0); const tp = tg.attributes.position;
+  for (let i = 0; i < tp.count; i++) { const y = tp.getY(i) / h; tp.setX(i, tp.getX(i) + 0.15 * h * 0.04 * Math.sin(y * 5 + seed)); tp.setZ(i, tp.getZ(i) + 0.1 * h * 0.04 * Math.cos(y * 4 + seed)); }
+  tg.computeVertexNormals();
+  const trunk = new THREE.Mesh(tg, bark); trunk.castShadow = true; trunk.receiveShadow = true; g.add(trunk);
+  const ends: THREE.Vector3[] = [V(0, h * 0.86, 0)];
+  const nb = 5 + Math.floor(R(1) * 3);
+  for (let i = 0; i < nb; i++) {
+    const a = (i / nb) * Math.PI * 2 + R(i + 2), y0 = h * (0.42 + 0.22 * R(i + 9)), len = h * (0.28 + 0.12 * R(i + 4)), up = 0.55 + 0.3 * R(i + 5);
+    const dir = V(Math.cos(a) * (1 - up * 0.5), up, Math.sin(a) * (1 - up * 0.5)).normalize();
+    const bg = new THREE.CylinderGeometry(h * 0.006, h * 0.016, len, 8).translate(0, len / 2, 0);
+    const b = new THREE.Mesh(bg, bark); b.position.set(0, y0, 0); b.quaternion.setFromUnitVectors(V(0, 1, 0), dir); b.castShadow = true; g.add(b);
+    ends.push(V(0, y0, 0).addScaledVector(dir, len));
+  }
+  // real leaves pass light through (translucency): a soft emissive from their own texture keeps back-lit leaves green, not black
+  const leafM = mats?.leaf ?? windSway(new THREE.MeshLambertMaterial({ map: leafTex(seed), alphaTest: 0.5, side: THREE.DoubleSide, emissive: new THREE.Color("#ffffff"), emissiveMap: leafTex(seed), emissiveIntensity: 0.35 }), h, 0.18, 0.06);
+  const n = Math.round(420 * ends.length), leaves = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.16, 0.16), leafM, n), m4 = new THREE.Matrix4(), c = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    const e = ends[i % ends.length], rr = h * 0.16 * Math.cbrt(hash(i, seed + 3)), th = hash(i, seed + 4) * Math.PI * 2, ph = Math.acos(2 * hash(i, seed + 5) - 1);
+    const p = V(e.x + rr * Math.sin(ph) * Math.cos(th), e.y + rr * 0.75 * Math.cos(ph), e.z + rr * Math.sin(ph) * Math.sin(th));
+    m4.compose(p, new THREE.Quaternion().setFromEuler(new THREE.Euler(hash(i, 7) * 6.3, hash(i, 8) * 6.3, hash(i, 9) * 6.3)), V(1, 1, 1));
+    leaves.setMatrixAt(i, m4); leaves.setColorAt(i, c.setHSL(0.24 + 0.05 * hash(i, 10), 0.25, 0.85 + 0.15 * hash(i, 11)));
+  }
+  leaves.castShadow = true; leaves.receiveShadow = true; g.add(leaves);
+  return { group: g, leaves, trunk };
 };

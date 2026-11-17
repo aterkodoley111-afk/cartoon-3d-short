@@ -1,34 +1,36 @@
-// Test scene for templates/real/realism.ts: car + seat anchors, bus, a pour, grass in the wind (plain lights).
+// Test scene for templates/real/realism.ts: a car driving along a real road past grass and trees in the wind.
+// Views: 0 windscreen 3/4 (glass + driver), 1 tree close (bark, leaves), 2 wheel while driving, 3 wide road scene.
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { useCurrentFrame } from "remotion";
 import { ThreeCanvas } from "@remotion/three";
 import { useThree } from "@react-three/fiber";
-import { car, bus, drive, Pour, grassField, WIND, carMaterials } from "./realism";
+import { car, bus, drive, Pour, grassField, WIND, carMaterials, tree, turfTex, asphaltRealTex } from "./realism";
 const L = (c: string, o: Partial<THREE.MeshLambertMaterialParameters> = {}) => new THREE.MeshLambertMaterial({ color: c, ...o });
+const rep = (t: THREE.Texture, x: number, y: number) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(x, y); return t; };
+export const SPEED = 9; // m/s (~32 km/h)
 const Inner: React.FC<{ view: number }> = ({ view }) => {
   const f = useCurrentFrame(), t = f / 30, { camera } = useThree();
   const w = useMemo(() => {
     const g = new THREE.Group();
-    const m = { body: L("#c8282e"), glass: L("#9fc3dc", { transparent: true, opacity: 0.45 }), trim: L("#2a2a30"), tyre: L("#1d1b22"), hub: L("#b8bec6"), light: L("#fff3c4"), seat: L("#3a4a6a"), interior: L("#4a4448") };
-    const c = car(carMaterials("#1f5fae")); g.add(c.root);
-    for (const s of [c.seats.driver, ...c.seats.rows]) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.12), L("#ffcc88")); b.position.copy(s).add(new THREE.Vector3(0, 0.62, 0)); c.body.add(b); }
-    const b = bus(carMaterials("#c8282e")); b.root.position.set(0, 0, -6); g.add(b.root);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80).rotateX(-Math.PI / 2), L("#6e6b66")); g.add(ground);
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(10, 10).rotateX(-Math.PI / 2), L("#4c4636")); water.position.set(0, 0.01, 8); g.add(water);
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(6, 3, 0.4), L("#c9b48a")); wall.position.set(0, 1.5, 5.6); g.add(wall);
-    const p = new Pour({ from: new THREE.Vector3(0, 1.6, 5.85), dir: new THREE.Vector3(0, -0.15, 1), speed: 1.2, radius: 0.12, surfaceY: 0.02, liquid: L("#1e1a1c"), foam: L("#6a645a"), slick: L("#2c2622", { transparent: true, opacity: 0.85 }), slickMax: 2.5 });
-    g.add(p.group);
-    const grass = grassField(6000, { x0: 6, x1: 16, z0: -4, z1: 6 }, L("#5aa83c")); g.add(grass);
-    const sun = new THREE.DirectionalLight("#fff", 2.2); sun.position.set(10, 15, 12); g.add(sun, new THREE.HemisphereLight("#cfe6ff", "#6c5c8c", 1.2));
-    return { g, c, p };
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(400, 7).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: rep(asphaltRealTex(), 100, 1.75) })); g.add(road);
+    const turf = new THREE.Mesh(new THREE.PlaneGeometry(400, 60).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ map: rep(turfTex(), 100, 15) })); turf.position.set(0, -0.01, 33); g.add(turf);
+    const turf2 = turf.clone(); turf2.position.z = -33; g.add(turf2);
+    g.add(grassField(26000, { x0: -30, x1: 30, z0: 3.6, z1: 14 }, new THREE.MeshLambertMaterial(), 0.32));
+    for (let i = 0; i < 6; i++) { const tr = tree(7 + 2 * (i % 3), i + 1); tr.group.position.set(-26 + i * 10, 0, 8 + 3 * (i % 2)); g.add(tr.group); }
+    const c = car(carMaterials("#1f5fae")); c.root.position.z = -1.6; g.add(c.root);
+    for (const s of [c.seats.driver, c.seats.rows[0]]) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.11), L("#ffcc88")); b.position.copy(s).add(new THREE.Vector3(0, 0.66, 0)); const bd = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.3), L("#3f6a8a")); bd.position.copy(s).add(new THREE.Vector3(-0.05, 0.3, 0)); c.body.add(b, bd); }
+    const sun = new THREE.DirectionalLight("#fff4e0", 2.4); sun.position.set(20, 30, 25); g.add(sun, new THREE.HemisphereLight("#cfe6ff", "#6c7c4c", 1.1));
+    void bus; void Pour;
+    return { g, c };
   }, []);
-  WIND.time.value = t; drive(w.c, 0.8 * t, t, 0); w.p.update(t - 0.2);
-  const cams: [number[], number[]][] = [[[4.4, 1.05, 2.4], [1.6, 0.65, 0.2]], [[0.2, 1.25, 5.2], [0, 0.8, 0]], [[-4.3, 1.1, -2.2], [-1.7, 0.7, -0.2]], [[1.95, 0.45, 2.0], [1.35, 0.35, 0.8]]];
+  WIND.time.value = t;
+  const x = -12 + SPEED * t; w.c.root.position.x = x; drive(w.c, SPEED * t, t, 0, 1, SPEED);
+  const cams: [number[], number[]][] = [[[x + 4.4, 1.5, 0.6], [x + 0.6, 1.05, -1.6]], [[-13, 3.0, 0.5], [-16, 4.6, 8]], [[x + 2.2, 0.5, 0.4], [x + 1.35, 0.35, -0.75]], [[x - 9, 1.8, -3.5], [x + 3, 1.6, 4]]];
   const [pp, lk] = cams[view];
   camera.position.set(pp[0], pp[1], pp[2]); camera.lookAt(lk[0], lk[1], lk[2]);
   return <primitive object={w.g} />;
 };
 export const RealTest: React.FC<{ view?: number }> = ({ view = 0 }) => (
-  <ThreeCanvas width={1080} height={1920} camera={{ fov: 45, near: 0.05, far: 200 }} gl={{ antialias: true }} style={{ background: "#9cc4ea" }}><Inner view={view} /></ThreeCanvas>
+  <ThreeCanvas width={1080} height={1920} camera={{ fov: 45, near: 0.05, far: 300 }} gl={{ antialias: true }} style={{ background: "#9cc4ea" }}><Inner view={view} /></ThreeCanvas>
 );

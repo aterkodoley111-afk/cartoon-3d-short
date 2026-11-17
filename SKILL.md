@@ -265,6 +265,15 @@ Use `templates/real/realism.ts` (tested in `templates/real/RealTest.tsx`, sheet 
   UK plates (white front, yellow rear, blank); tyres with tread texture and rounded sidewalls; 5-spoke alloys with rim
   lip, centre cap and nuts; dark wheel-well liners. Anything placed on an extruded body must be offset by the bevel
   (the surface is `bevel` outside the profile points), or it ends up buried inside the body.
+- **Cars are hollow above the belt line** (roof on A/B/C pillars, glass quads between them): a solid cabin hides
+  the windscreen texture and everyone inside. Glass uses the glass texture the right way up (sky at the top).
+- **Wheels while driving**: textured tread (chevrons, sipes, centre groove) and sidewall marks so the roll reads;
+  pass the speed to `drive(..., speed)`: a motion-blurred wheel face fades in above ~0.15 rad per frame, like film.
+- **Nature** (`tree()`, `grassField()`, `bladeTex/leafTex/barkTex/turfTex/asphaltRealTex`, sheet
+  `templates/real/test_sheet_drive_nature.jpg`): trees = bent tapered bark trunk + 5-7 branches + ~420 textured leaf
+  cards per branch end (translucent, alpha-tested, NOINK), swaying in WIND (trunk barely, tips more, leaves flutter);
+  grass = instanced textured blades (dark base, light tip) on a turf texture. All placement uses the integer hash in
+  realism.ts: a sin() hash lines thousands of instances up into visible stripes.
 - **Occupants** sit on the vehicle's seat anchors (`v.seats.driver`, `v.seats.rows`) in sit mode, at scale 1, the
   driver's hands on the wheel; seen through glass framed by pillars; some other seats filled; never a figure standing
   in a hole of a box.
