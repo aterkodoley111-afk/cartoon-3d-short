@@ -15,7 +15,7 @@ export type Expr2 = "neutral" | "smug" | "smile" | "grin" | "laugh" | "shock" | 
 export type Look2 = {
   hair?: HairK; hairCol?: string; hat?: HatK; hatCol?: string; hatCol2?: string;
   top: TopK; col: string; col2?: string; pat?: PatK; patCol?: string;
-  bow?: string; tie?: string; belt?: string; badge?: boolean; mustache?: string; beard?: string; glasses?: "round" | "sun";
+  pants?: string; bow?: string; tie?: string; belt?: string; badge?: boolean; mustache?: string; beard?: string; glasses?: "round" | "sun";
   build?: "adult" | "big" | "kid" | "slim"; plume?: string;
 };
 export type Arm2 = { a: number; e: number }; // shoulder angle (0 = hanging down, + = forward/out to that side), elbow bend
@@ -24,6 +24,8 @@ export type Pose2 = {
   phase?: number; armL?: Arm2; armR?: Arm2; prop?: "mug" | "phone" | "cash" | "hammer" | "stopwatch" | "sign" | "axe" | "pot" | "none"; seatH?: number; blink?: boolean;
 };
 const INK = "#16121a", LIMB = "#1b1519";
+/** scene light on the cast: shadow tint (sky bounce by day, warm by lamps) and strength; set per shot */
+export const SHADE = { c: "34,48,104", k: 1.25, head0: "#e2e6f0", head1: "#b9c2da" };
 type P = [number, number];
 const R = (s: number) => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 const hex = (c: string): [number, number, number] => { const h = c.replace("#", ""); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number]; };
@@ -40,7 +42,7 @@ export class Toon2 {
   /** light from the upper left: a soft highlight + a shadow on the lower right, inside the shape */
   shade(pts: P[], x0: number, y0: number, x1: number, y1: number, k = 0.38) {
     const g = this.g; this.clip(pts, () => {
-      const lg = g.createLinearGradient(x0, y0, x1, y1); lg.addColorStop(0, "rgba(255,255,255,0.20)"); lg.addColorStop(0.45, "rgba(255,255,255,0)"); lg.addColorStop(0.62, "rgba(20,10,40,0)"); lg.addColorStop(1, `rgba(20,10,40,${k})`);
+      const lg = g.createLinearGradient(x0, y0, x1, y1); lg.addColorStop(0, "rgba(255,250,235,0.26)"); lg.addColorStop(0.38, "rgba(255,255,255,0)"); lg.addColorStop(0.55, `rgba(${SHADE.c},0)`); lg.addColorStop(1, `rgba(${SHADE.c},${k * SHADE.k})`);
       g.fillStyle = lg; g.fillRect(Math.min(x0, x1) - 400, Math.min(y0, y1) - 400, 1400, 1400);
     });
   }
@@ -65,7 +67,7 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
   const hipY = sit ? seatY : legs === "crouch" ? 975 - B.leg * 0.62 : legs === "jump" ? 975 - B.leg * 0.95 : 975 - B.leg;
   const tTop = hipY - B.th + 34, tBot = hipY + 30, cx = 300, tw = B.tw;
   // ---- legs (behind the torso)
-  const legW = L.build === "big" ? 13 : 10;
+  const legW = L.build === "big" ? 19 : L.build === "kid" ? 13 : 15, legC = L.pants ?? "#262b3c", armC = "#1e2130";
   const foot = (x: number, y: number, dir: number) => { t.ell(x + dir * 9, y - 6, 17, 10, 0, LIMB); };
   const legPair: [P, P, P][] = [];
   for (const sd of [-1, 1]) {
@@ -80,7 +82,7 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
     else if (legs === "wide") { legPair.push([[hx, hipY], [hx + sd * 50, (hipY + 975) / 2], [hx + sd * 78, 975]]); }
     else legPair.push([[hx, hipY], [hx + sd * 6 + f * 6, (hipY + 975) / 2], [hx + sd * 12 + f * 4, 975]]);
   }
-  for (const [h, k, a] of legPair) { t.line([h, k, a], legW, LIMB); foot(a[0], a[1] + 6, f >= 0 ? 1 : -1); }
+  for (const [h, k, a] of legPair) { t.line([h, k, a], legW + 4, INK); t.line([h, k, a], legW, legC); foot(a[0], a[1] + 6, f >= 0 ? 1 : -1); }
   // ---- arms behind? (an arm reaching back is drawn before the torso)
   const shY = tTop + 40;
   const armPts = (sd: number, A: Arm2): P[] => {
@@ -91,7 +93,7 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
   };
   const aL = P0.armL ?? { a: 0.18, e: -0.05 }, aR = P0.armR ?? { a: 0.18, e: -0.05 };
   const hand = (p: P) => { t.circ(p[0], p[1], 13, LIMB); t.circ(p[0] + 7, p[1] - 6, 6, LIMB); };
-  const drawArm = (sd: number, A: Arm2) => { const pts = armPts(sd, A); t.line(pts, legW - 1, LIMB); hand(pts[2]); return pts[2]; };
+  const drawArm = (sd: number, A: Arm2) => { const pts = armPts(sd, A); t.line(pts, legW - 3, armC); hand(pts[2]); return pts[2]; };
   // ---- torso
   const big = L.build === "big";
   const torso: P[] = [];
@@ -109,7 +111,8 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
   t.path(body); g.fillStyle = L.col; g.fill();
   t.clip(body, () => pattern(t, L, cx, tTop, tw, tBot - tTop + (dress ? 140 : 0), seed));
   details(t, L, cx, tTop, tBot, hipY, tw, f);
-  t.shade(body, cx - tw * 0.6, tTop, cx + tw * 0.55, tBot + 10, 0.42);
+  t.shade(body, cx - tw * 0.6, tTop, cx + tw * 0.55, tBot + 10, 0.5);
+  t.clip(body, () => { g.save(); g.translate(-7, -5); t.path(body); g.lineWidth = 10; g.strokeStyle = "rgba(255,248,230,0.22)"; g.stroke(); g.restore(); });
   t.path(body); g.lineWidth = 9; g.strokeStyle = INK; g.lineJoin = "round"; g.stroke();
   // sleeves: short cloth stubs at the shoulders
   const sleeve = (sd: number, A: Arm2) => { if (L.top === "tank" || L.top === "vest" && !L.col2) return; const pts = armPts(sd, A); const d = [pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]], n = Math.hypot(d[0], d[1]);
@@ -124,7 +127,7 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
   // heavy ink: an offset black head under the white one (thicker at the lower right)
   g.save(); g.translate(3, 4); t.path(headPts(hcx, hcy, hw + 16, f, seed)); g.fillStyle = INK; g.fill(); g.restore();
   t.path(headPts(hcx, hcy, hw + 13, f, seed)); g.fillStyle = INK; g.fill();
-  const rg = g.createRadialGradient(hcx - hw * 0.18, hcy - hw * 0.2, hw * 0.1, hcx, hcy, hw * 0.62); rg.addColorStop(0, "#ffffff"); rg.addColorStop(0.62, "#f6f6f6"); rg.addColorStop(1, "#d7d9e2");
+  const rg = g.createRadialGradient(hcx - hw * 0.18, hcy - hw * 0.2, hw * 0.1, hcx, hcy, hw * 0.62); rg.addColorStop(0, "#ffffff"); rg.addColorStop(0.5, "#f7f7f8"); rg.addColorStop(0.82, SHADE.head0); rg.addColorStop(1, SHADE.head1);
   t.path(hp); g.fillStyle = rg; g.fill();
   face(t, L, P0, hcx, hcy, hw, f, seed);
   hairFront(t, L, hcx, hcy, hw, f, seed);

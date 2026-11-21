@@ -24,3 +24,13 @@ ours luma 0.64 / contrast 0.26 / sat 0.34 / darkest 2% 0.07 ; ref 0.53 / 0.22 / 
 12. Effects missing: dust trails behind cars, skid marks, debris, heat haze.
 13. Story props missing: signs, counters, tyres, tow truck, light bars - refs fill each shot with props that carry the
     joke.
+
+## v4 fixes (all 13 addressed; sheet templates/looklab/v4_test_sheet.jpg)
+Grade now luma 0.54 / contrast 0.22 / sat 0.40 (ref 0.53 / 0.22 / 0.37). Plain clothes (one patterned gag
+character), blue-tinted form shading + lit rim on cast (`SHADE` in chars2.ts), 15 px navy legs / 12 px arms,
+closer framing, dust under feet and behind cars, sun at 27 deg from the left, chip-seal road with worn markings,
+mixed-height grass with 14% dry tufts + 7000 wildflowers, furrows along the trunk (TubeGeometry u = length),
+420 cards per crown with dark interiors, deeper sky, car: 0.36 m wheels at the body edge, gloss-black pillars, chrome
+belt trim, LED strip, lower intake, darker glass; props: warning sign, tyre stack, cones, mailbox, hay bales.
+Never put skid marks in a repeating road texture (they repeat every tile); use a single decal.
+Still open: ink keeps the darkest 2% at 0.04 (ref 0.16, haze); car still slightly soft vs ref crease lines.

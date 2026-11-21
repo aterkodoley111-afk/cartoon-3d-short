@@ -29,14 +29,18 @@ const groundTex = () => tex(1024, 1024, (g) => {
 });
 /** asphalt with aggregate, patches, crack sealant, and the markings PAINTED in (white edge lines, yellow dashed centre) */
 const roadTex = () => tex(1024, 2048, (g) => {
-  g.fillStyle = "#4e4f53"; g.fillRect(0, 0, 1024, 2048);
+  g.fillStyle = "#58595d"; g.fillRect(0, 0, 1024, 2048);
   for (let i = 0; i < 40; i++) { const x = hash(i, 11) * 1024, y = hash(i, 12) * 2048, r = 60 + 200 * hash(i, 13); const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, hash(i, 14) > 0.5 ? "rgba(120,120,122,0.22)" : "rgba(30,30,34,0.25)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r); }
-  for (let i = 0; i < 40000; i++) { const v = 60 + hash(i, 15) * 90; g.fillStyle = `rgba(${v},${v},${v + 4},0.55)`; g.fillRect(hash(i, 16) * 1024, hash(i, 17) * 2048, 1.5, 1.5); }
-  g.strokeStyle = "rgba(25,25,28,0.7)"; g.lineWidth = 3; for (let i = 0; i < 10; i++) { let x = hash(i, 18) * 1024, y = hash(i, 19) * 2048; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 8; k++) { x += (hash(i * 9 + k, 20) - 0.5) * 80; y += 30 + 40 * hash(i * 9 + k, 21); g.lineTo(x, y); } g.stroke(); }
+  // chip-seal aggregate: many small light and dark stones with a dark gap between them
+  for (let i = 0; i < 140000; i++) { const v = 50 + hash(i, 15) * 120, x = hash(i, 16) * 1024, y = hash(i, 17) * 2048, r = 0.6 + hash(i, 26) * 1.6; g.fillStyle = `rgba(${v},${v - 2},${v - 4},0.7)`; g.fillRect(x, y, r, r * (0.7 + 0.6 * hash(i, 27))); }
+  // fine hairline sealant joints only (no thick drawn cracks)
+  g.strokeStyle = "rgba(28,28,30,0.35)"; g.lineWidth = 1.2; for (let i = 0; i < 6; i++) { let x = hash(i, 18) * 1024, y = hash(i, 19) * 2048; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 10; k++) { x += (hash(i * 9 + k, 20) - 0.5) * 30; y += 20 + 25 * hash(i * 9 + k, 21); g.lineTo(x, y); } g.stroke(); }
   // tyre polish in the wheel paths
   for (const x of [250, 400, 624, 774]) { const gr = g.createLinearGradient(x - 40, 0, x + 40, 0); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(0.5, "rgba(20,20,24,0.18)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - 40, 0, 80, 2048); }
-  g.fillStyle = "#ecebe4"; g.fillRect(40, 0, 26, 2048); g.fillRect(958, 0, 26, 2048);
-  g.fillStyle = "#e8b628"; for (let y = 0; y < 2048; y += 512) g.fillRect(500, y + 40, 24, 300);
+  g.fillStyle = "#e2e1da"; g.fillRect(40, 0, 22, 2048); g.fillRect(962, 0, 22, 2048);
+  g.fillStyle = "#dfae2a"; for (let y = 0; y < 2048; y += 512) g.fillRect(500, y + 40, 22, 300);
+  // worn paint: aggregate shows through the markings
+  for (let i = 0; i < 9000; i++) { const v = 60 + hash(i, 36) * 60; g.fillStyle = `rgba(${v},${v},${v},0.5)`; const x = [40 + hash(i, 37) * 22, 962 + hash(i, 38) * 22, 500 + hash(i, 39) * 22][i % 3]; g.fillRect(x, hash(i, 40) * 2048, 1.6, 1.6); }
   for (let i = 0; i < 3000; i++) { g.fillStyle = "rgba(60,60,60,0.35)"; const x = [40 + hash(i, 22) * 26, 958 + hash(i, 23) * 26, 500 + hash(i, 24) * 24][i % 3]; g.fillRect(x, hash(i, 25) * 2048, 2, 2); }
 });
 const gravelTex = () => tex(512, 512, (g) => { g.fillStyle = "#8a7e6c"; g.fillRect(0, 0, 512, 512); for (let i = 0; i < 6000; i++) { const v = 100 + hash(i, 31) * 90; g.fillStyle = `rgb(${v},${v - 8},${v - 20})`; g.beginPath(); g.ellipse(hash(i, 32) * 512, hash(i, 33) * 512, 1 + hash(i, 34) * 3, 1 + hash(i, 35) * 2, 0, 0, 7); g.fill(); } });
@@ -45,10 +49,12 @@ const fieldTex = (crop: string, soil: string) => tex(512, 512, (g) => { g.fillSt
 /** oak bark: deep vertical furrows broken into plates, moss on one side */
 const barkTex = () => tex(512, 1024, (g) => {
   g.fillStyle = "#6e5a46"; g.fillRect(0, 0, 512, 1024);
-  for (let i = 0; i < 70; i++) { let x = hash(i, 51) * 512; g.strokeStyle = i % 3 ? "#2e241c" : "#3c3026"; g.lineWidth = 4 + hash(i, 52) * 7; g.beginPath(); g.moveTo(x, 0); for (let y = 0; y <= 1024; y += 40) { x += (hash(i * 31 + y, 53) - 0.5) * 18; g.lineTo(x, y); } g.stroke(); }
-  for (let i = 0; i < 300; i++) { g.strokeStyle = "rgba(30,24,18,0.6)"; g.lineWidth = 2; const x = hash(i, 54) * 512, y = hash(i, 55) * 1024; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 18 * (hash(i, 56) - 0.5), y + 3); g.stroke(); }
+  g.fillStyle = "#5f5042"; g.fillRect(0, 0, 512, 1024);
+  for (let i = 0; i < 90; i++) { let y = hash(i, 51) * 1024; g.strokeStyle = i % 3 ? "#2a211a" : "#3a2f25"; g.lineWidth = 5 + hash(i, 52) * 9; g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= 512; x += 64) { y += (hash(i * 31 + x, 53) - 0.5) * 10; g.lineTo(x, y); } g.stroke();
+    g.strokeStyle = "rgba(160,140,115,0.35)"; g.lineWidth = 2; g.beginPath(); g.moveTo(0, y - 6); g.lineTo(512, y - 6 + (hash(i, 64) - 0.5) * 8); g.stroke(); }
+  for (let i = 0; i < 260; i++) { g.strokeStyle = "rgba(30,24,18,0.5)"; g.lineWidth = 2; const x = hash(i, 54) * 512, y = hash(i, 55) * 1024; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y + 22 * (hash(i, 56) - 0.5)); g.stroke(); }
   for (let i = 0; i < 2500; i++) { g.fillStyle = hash(i, 57) > 0.5 ? "rgba(170,150,120,0.25)" : "rgba(40,30,20,0.25)"; g.fillRect(hash(i, 58) * 512, hash(i, 59) * 1024, 3, 3); }
-  for (let i = 0; i < 160; i++) { g.fillStyle = "rgba(90,120,50,0.35)"; g.beginPath(); g.ellipse(hash(i, 60) * 160, hash(i, 61) * 1024, 6 + hash(i, 62) * 14, 4 + hash(i, 63) * 8, 0, 0, 7); g.fill(); }
+  for (let i = 0; i < 160; i++) { g.fillStyle = "rgba(90,120,50,0.35)"; g.beginPath(); g.ellipse(hash(i, 61) * 512, hash(i, 60) * 200, 6 + hash(i, 62) * 14, 4 + hash(i, 63) * 8, 0, 0, 7); g.fill(); }
 });
 /** a spray of oak leaves on a card (lobed leaves, mid-ribs, a light-to-dark gradient) */
 const leafSprayTex = (k: number) => tex(256, 256, (g) => {
@@ -77,7 +83,7 @@ const cumulusTex = (k: number) => tex(1024, 512, (g) => {
 export const grass = (n: number, place: (i: number) => [number, number, number] | null, h0 = 0.38) => {
   const segs = 5, pos: number[] = [], col: number[] = [], idx: number[] = [];
   for (let i = 0; i <= segs; i++) { const v = i / segs, w = 0.011 * (1 - v * 0.95), bend = 0.12 * v * v; pos.push(-w, v, bend, w, v, bend);
-    const c = new THREE.Color("#2c4a14").lerp(new THREE.Color("#7fb63a"), Math.min(1, v * 1.3)).lerp(new THREE.Color("#d6e27a"), Math.max(0, v - 0.7) * 2); col.push(c.r, c.g, c.b, c.r, c.g, c.b); }
+    const c = new THREE.Color("#253f12").lerp(new THREE.Color("#6b9a34"), Math.min(1, v * 1.3)).lerp(new THREE.Color("#b9c86a"), Math.max(0, v - 0.7) * 2); col.push(c.r, c.g, c.b, c.r, c.g, c.b); }
   for (let i = 0; i < segs; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
   const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); geo.setIndex(idx); geo.computeVertexNormals();
   // normals lean up so the lawn reads lit like the reference (blades are thin: shading from the sky, not their flat face)
@@ -87,9 +93,9 @@ export const grass = (n: number, place: (i: number) => [number, number, number] 
   let k = 0;
   for (let i = 0; i < n * 3 && k < n; i++) {
     const p = place(i); if (!p) continue;
-    const s = h0 * (0.5 + 0.9 * hash(i, 3) ** 1.5);
+    const s = h0 * (0.3 + 1.3 * hash(i, 3) ** 2.2);
     m4.compose(V(p[0], p[1], p[2]), q.setFromEuler(new THREE.Euler(0.25 * (hash(i, 4) - 0.5), hash(i, 5) * 6.28, 0.25 * (hash(i, 6) - 0.5))), V(1 + hash(i, 9), s, 1));
-    im.setMatrixAt(k, m4); im.setColorAt(k, c.setHSL(0.2 + 0.07 * hash(i, 7), 0.55, 0.42 + 0.22 * hash(i, 8))); k++;
+    im.setMatrixAt(k, m4); const dry = hash(i, 10) < 0.14; im.setColorAt(k, dry ? c.setHSL(0.12 + 0.03 * hash(i, 7), 0.42, 0.62 + 0.15 * hash(i, 8)) : c.setHSL(0.21 + 0.07 * hash(i, 7), 0.5, 0.4 + 0.22 * hash(i, 8))); k++;
   }
   im.count = k; im.receiveShadow = true; im.castShadow = false; im.frustumCulled = false;
   return im;
@@ -121,15 +127,15 @@ export const oak = (seed: number, H = 13) => {
   }
   clumps.push(V(0, H * 0.82, 0), V(1.5, H * 0.78, 1), V(-1.6, H * 0.76, -1.2));
   // crown: leaf-spray cards around every clump centre (a sphere shell, denser outside), translucent
-  const leafMats = [0, 1, 2].map((k) => windSway(new THREE.MeshStandardMaterial({ map: leafSprayTex(k), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.7, emissive: new THREE.Color("#2a4a10"), emissiveIntensity: 0.4 }), H, 0.14, 0.05));
-  const per = 260, card = new THREE.PlaneGeometry(0.85, 0.85), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
+  const leafMats = [0, 1, 2].map((k) => windSway(new THREE.MeshStandardMaterial({ map: leafSprayTex(k), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.7, emissive: new THREE.Color("#2a4a10"), emissiveIntensity: 0.1 }), H, 0.14, 0.05));
+  const per = 420, card = new THREE.PlaneGeometry(0.85, 0.85), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
   leafMats.forEach((lm, mi) => {
     const im = new THREE.InstancedMesh(card, lm, clumps.length * Math.ceil(per / 3)); let k = 0;
     clumps.forEach((cp, ci) => { for (let j = 0; j < per / 3; j++) {
       const i = ci * 1000 + j * 3 + mi, th = hash(i, 91) * 6.28, ph = Math.acos(2 * hash(i, 92) - 1), rr = (1.6 + 1.6 * R(ci + 40)) * Math.pow(hash(i, 93), 0.35);
       const p = cp.clone().add(V(rr * Math.sin(ph) * Math.cos(th), rr * 0.8 * Math.cos(ph), rr * Math.sin(ph) * Math.sin(th)));
       m4.compose(p, q.setFromEuler(new THREE.Euler(hash(i, 94) * 6.3, hash(i, 95) * 6.3, hash(i, 96) * 6.3)), V(1, 1, 1));
-      im.setMatrixAt(k, m4); im.setColorAt(k, c.setHSL(0.22 + 0.04 * hash(i, 97), 0.4, 0.55 + 0.35 * (p.y - cp.y + rr) / (2 * rr + 0.01))); k++;
+      im.setMatrixAt(k, m4); im.setColorAt(k, c.setHSL(0.22 + 0.04 * hash(i, 97), 0.45, 0.22 + 0.42 * Math.min(1, rr / (2.8 + 0.01)) * (0.55 + 0.45 * (p.y - cp.y + rr) / (2 * rr + 0.01)))); k++;
     } });
     im.count = k; im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false; g.add(im);
   });
@@ -146,7 +152,7 @@ export class Lab {
     // sky: deep blue zenith to a pale, slightly warm horizon
     const skyMat = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false,
       vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-      fragmentShader: `varying vec3 vP; void main(){ float e = clamp(vP.y, 0.0, 1.0); vec3 hor = vec3(0.78, 0.88, 0.98), mid = vec3(0.34, 0.6, 0.95), top = vec3(0.1, 0.32, 0.82);
+      fragmentShader: `varying vec3 vP; void main(){ float e = clamp(vP.y, 0.0, 1.0); vec3 hor = vec3(0.72, 0.84, 0.97), mid = vec3(0.24, 0.52, 0.94), top = vec3(0.05, 0.26, 0.8);
         vec3 c = mix(hor, mid, smoothstep(0.0, 0.18, e)); c = mix(c, top, smoothstep(0.18, 0.75, e)); gl_FragColor = vec4(c, 1.0); }` });
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(4000, 48, 24), skyMat); this.sky.renderOrder = -2; R.add(this.sky);
     for (let i = 0; i < 16; i++) {
@@ -190,7 +196,7 @@ export class Lab {
     for (let i = 0; i < 6; i++) { const t = oak(10 + i, 9 + 3 * hash(i, 111)); t.position.set((i % 2 ? 1 : -1) * (60 + 40 * hash(i, 112)), 0, -260 - i * 140); R.add(t); }
     // grass: dense meadow on both verges and around the oak (real blades only where the lens is close)
     const verge = (i: number): [number, number, number] | null => { const z = 20 - 90 * hash(i, 121), side = hash(i, 122) > 0.5 ? 1 : -1, x = side * (5.2 + 8 * hash(i, 123) ** 1.3); return [x, 0, z]; };
-    R.add(grass(150000, verge, 0.42));
+    R.add(grass(170000, verge, 0.34));
     // cars: a red hatchback on the road toward us, a white SUV further back
     const envC = skyEnv(false);
     this.car1 = sedan("#b8141c", envC); this.car1.root.position.set(1.8, 0.06, -6); this.car1.root.rotation.y = -Math.PI / 2; R.add(this.car1.root);
@@ -206,6 +212,40 @@ export class Lab {
     const seat = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.5), web); seat.rotation.x = -Math.PI / 2; seat.position.set(0, 0.37, -0.03); chair.add(seat);
     const back = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.6), web); back.position.set(0, 0.66, -0.35); back.rotation.x = -0.24; chair.add(back);
     chair.position.set(6.3, 0, -16.55); chair.rotation.y = -0.51; R.add(chair);
+    // wildflowers in the verge: dandelions, clover, a few purple vetch heads on thin stems
+    { const n = 7000, head = new THREE.SphereGeometry(0.022, 8, 6); head.scale(1, 0.55, 1);
+      const fm = new THREE.MeshStandardMaterial({ roughness: 0.7 }), fl = new THREE.InstancedMesh(head, fm, n), m = new THREE.Matrix4(), c = new THREE.Color();
+      const stems: number[] = [];
+      for (let i = 0; i < n; i++) { const pl = verge(i * 7 + 3)!, y = 0.08 + 0.26 * hash(i, 131) ** 1.5, sc = 0.7 + 0.8 * hash(i, 132); m.compose(V(pl[0], y, pl[2]), new THREE.Quaternion(), V(sc, sc, sc)); fl.setMatrixAt(i, m);
+        const k = hash(i, 133); fl.setColorAt(i, k < 0.5 ? c.set("#f3c623") : k < 0.85 ? c.set("#f4f2ea") : c.set("#8a5ac8")); stems.push(pl[0], 0, pl[2], pl[0], y, pl[2]); }
+      fl.receiveShadow = true; fl.frustumCulled = false; R.add(fl);
+      const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.Float32BufferAttribute(stems, 3)); R.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: "#4f7a2a" }))); }
+    // roadside props (no text): a triangular warning sign, a stack of old tyres by the oak, traffic cones on the shoulder,
+    // a farm mailbox, round hay bales in the fields
+    { const post = new THREE.MeshStandardMaterial({ color: "#9aa0a6", metalness: 0.7, roughness: 0.4 });
+      const sign = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.1, 10), post); pole.position.y = 1.05; sign.add(pole);
+      const face = new THREE.Mesh(new THREE.CircleGeometry(0.42, 3), new THREE.MeshStandardMaterial({ map: tex(256, 256, (g) => { g.fillStyle = "#c8202a"; g.fillRect(0, 0, 256, 256); g.fillStyle = "#f6f4ee"; g.beginPath(); g.moveTo(128, 52); g.lineTo(218, 200); g.lineTo(38, 200); g.closePath(); g.fill(); g.fillStyle = "#16161a"; g.fillRect(118, 92, 20, 66); g.fillRect(118, 168, 20, 20); }), roughness: 0.5 }));
+      face.rotation.z = Math.PI / 2; face.position.y = 2.0; sign.add(face); sign.position.set(3.0, 0, -15.5); sign.rotation.y = 0.25; sign.traverse((o) => { o.castShadow = true; }); R.add(sign);
+      const tyreM = new THREE.MeshStandardMaterial({ color: "#1c1c1e", roughness: 0.85 });
+      for (let i = 0; i < 4; i++) { const ty = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.1, 12, 28), tyreM); ty.rotation.x = Math.PI / 2; ty.position.set(7.2 + (i === 3 ? 0.7 : 0), 0.1 + (i === 3 ? 0 : i * 0.2), -17.0 + (i === 3 ? 0.4 : 0)); ty.castShadow = true; R.add(ty); }
+      const coneM = new THREE.MeshStandardMaterial({ color: "#ff5a14", roughness: 0.5 }), band = new THREE.MeshStandardMaterial({ color: "#f2f2f2", roughness: 0.4 });
+      for (const z of [-2.5, -5.5, -8.5]) { const cg = new THREE.Group(); const cone = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.7, 16), coneM); cone.position.y = 0.38; cg.add(cone);
+        const b = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.1, 0.1, 16), band); b.position.y = 0.45; cg.add(b); const base = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.38), coneM); base.position.y = 0.02; cg.add(base);
+        cg.position.set(4.25, 0.045, z); cg.traverse((o) => { o.castShadow = true; }); R.add(cg); }
+      const mb = new THREE.Group(); const mp = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 0.1), new THREE.MeshStandardMaterial({ color: "#6e5640", roughness: 0.9 })); mp.position.y = 0.55; mb.add(mp);
+      const box = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.5, 20, 1, false, 0, Math.PI), new THREE.MeshStandardMaterial({ color: "#2f5f9a", metalness: 0.5, roughness: 0.4 })); box.rotation.x = Math.PI / 2; box.rotation.z = Math.PI / 2; box.position.y = 1.12; mb.add(box);
+      const boxB = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.32), box.material as THREE.Material); boxB.position.y = 1.04; mb.add(boxB);
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.18, 0.06), new THREE.MeshStandardMaterial({ color: "#d22020" })); flag.position.set(0.1, 1.26, 0.17); mb.add(flag);
+      mb.position.set(-4.9, 0, -9); mb.rotation.y = Math.PI / 2; mb.traverse((o) => { o.castShadow = true; }); R.add(mb);
+      const strawT = tex(256, 256, (g) => { g.fillStyle = "#c9a94a"; g.fillRect(0, 0, 256, 256); for (let i = 0; i < 2500; i++) { g.strokeStyle = hash(i, 141) > 0.5 ? "rgba(240,220,140,0.6)" : "rgba(120,95,40,0.5)"; g.lineWidth = 1.5; const x = hash(i, 142) * 256, y = hash(i, 143) * 256; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 14, y + 3 * (hash(i, 144) - 0.5)); g.stroke(); } });
+      const baleM = new THREE.MeshStandardMaterial({ map: strawT, roughness: 1 });
+      for (let i = 0; i < 14; i++) { const bale = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 1.2, 24), baleM); bale.rotation.z = Math.PI / 2; bale.rotation.y = hash(i, 145) * 3; const sd = i % 2 ? 1 : -1; bale.position.set(sd * (24 + 40 * hash(i, 146)), 0.75, -30 - 160 * hash(i, 147)); bale.castShadow = true; R.add(bale); } }
+  }
+  /** a cloud of soft dust puffs (sprites): kicked up behind a car or under feet */
+  dust(x: number, y: number, z: number, n: number, spread: [number, number, number], size: number, opacity = 0.4, col = "214,196,160") {
+    const t = tex(128, 128, (g) => { const gr = g.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, `rgba(${col},0.9)`); gr.addColorStop(0.5, `rgba(${col},0.4)`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); });
+    for (let i = 0; i < n; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, opacity: opacity * (0.5 + 0.5 * hash(i, 151)) }));
+      sp.position.set(x + (hash(i, 152) - 0.5) * spread[0], y + hash(i, 153) * spread[1], z + (hash(i, 154) - 0.5) * spread[2]); const k = size * (0.6 + 0.8 * hash(i, 155)); sp.scale.set(k, k * 0.8, 1); this.root.add(sp); }
   }
   /** a flat ink character card (the cast keeps its own look); drawn into a canvas, lit softly by the scene */
   card(draw: (p: Pen) => void, x: number, y: number, z: number, scale = 1, w = 1080, h = 1800) {
@@ -237,7 +277,7 @@ export class Lab {
     const sc = this.sun.shadow.camera, Rr = Math.min(60, 8 + s.pos.distanceTo(s.look) * 1.2); sc.left = -Rr; sc.right = Rr; sc.top = Rr; sc.bottom = -Rr; sc.near = 1; sc.far = 400; sc.updateProjectionMatrix();
   }
 }
-const SUN_DIR = new THREE.Vector3(-0.55, 0.62, 0.55).normalize();
+const SUN_DIR = new THREE.Vector3(-0.78, 0.46, 0.42).normalize();
 const CONTACT = (() => { const c = document.createElement("canvas"); c.width = 128; c.height = 64; const g = c.getContext("2d")!; const gr = g.createRadialGradient(64, 32, 2, 64, 32, 62); gr.addColorStop(0, "rgba(10,14,8,0.7)"); gr.addColorStop(0.45, "rgba(10,14,8,0.35)"); gr.addColorStop(1, "rgba(10,14,8,0)"); g.setTransform(1, 0, 0, 0.5, 0, 16); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
 export const envMap = () => skyEnv(false);
 export { seatWorld, handTargets, mergeVertices, bodyFront, bodySide };
@@ -250,7 +290,7 @@ export type { FrontOpts, SideOpts, Outfit };
  *  A/B/C pillars; slim LED headlights, a full-width tail-light bar, a dark grille, mirrors, door seams, handles,
  *  black arches and side skirts, 18" two-tone alloys on low-profile tyres, seats and a dashboard inside. +x = forward. */
 export const sedan = (paint: string, env: THREE.Texture) => {
-  const root = new THREE.Group(), L = 4.75, W = 1.85, wb = 2.8, xf = wb / 2 - 0.05, xr = -wb / 2 - 0.05, tr = 0.335;
+  const root = new THREE.Group(), L = 4.75, W = 1.86, wb = 2.84, xf = wb / 2 - 0.02, xr = -wb / 2 - 0.05, tr = 0.36;
   const paintM = new THREE.MeshPhysicalMaterial({ color: paint, roughness: 0.32, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05, envMap: env, envMapIntensity: 0.7 });
   const glassM = new THREE.MeshPhysicalMaterial({ color: "#0e1620", roughness: 0.04, metalness: 0.2, envMap: env, envMapIntensity: 1.3, clearcoat: 1, transparent: true, opacity: 0.62, depthWrite: false });
   const blackM = new THREE.MeshStandardMaterial({ color: "#16171a", roughness: 0.55, metalness: 0.2, envMap: env });
@@ -287,7 +327,7 @@ export const sedan = (paint: string, env: THREE.Texture) => {
   const lower = new THREE.Mesh(geo, paintM); lower.castShadow = true; lower.receiveShadow = true; root.add(lower);
   // greenhouse: belt -> glass -> roof rail -> roof, per slice; side glass and the raked screens are glass, the roof and
   // the rails (with A/B/C pillars) are body colour
-  const gx0 = -L / 2 + 0.13 * L, gx1 = -L / 2 + 0.775 * L, NG = 40, gp: number[] = [], gPaint: number[] = [], gGlass: number[] = [];
+  const gx0 = -L / 2 + 0.13 * L, gx1 = -L / 2 + 0.775 * L, NG = 40, gp: number[] = [], gPaint: number[] = [], gGlass: number[] = [], gBlack: number[] = [];
   const sec = (x: number) => { const p = prof(x), hb = p.hw * 0.94, hr = p.hw * 0.7, yr = Math.max(p.roof, p.belt + 0.02), yg = p.belt + (yr - p.belt) * 0.86;
     return [[-hb, p.belt], [-(hr + 0.06), yg], [-hr, yr], [0, yr + 0.03], [hr, yr], [hr + 0.06, yg], [hb, p.belt]] as [number, number][]; };
   for (let i = 0; i <= NG; i++) { const x = gx0 + ((gx1 - gx0) * i) / NG; for (const [z, y] of sec(x)) gp.push(x, y, z); }
@@ -296,14 +336,15 @@ export const sedan = (paint: string, env: THREE.Texture) => {
     for (let j = 0; j < 6; j++) {
       const a = i * 7 + j, b = a + 7, quad = [a, b, a + 1, a + 1, b, b + 1];
       const side = j === 0 || j === 5, rail = j === 1 || j === 4, top = j === 2 || j === 3;
-      ((side && !pillar) || (top && ramp) ? gGlass : gPaint).push(...quad); void rail;
+      ((side && !pillar) || (top && ramp) ? gGlass : rail || (side && pillar) ? gBlack : gPaint).push(...quad);
     }
   }
   // end caps (base of the screens) close the greenhouse onto the deck
   const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.Float32BufferAttribute(gp, 3));
-  gg.setIndex([...gPaint, ...gGlass]); gg.addGroup(0, gPaint.length, 0); gg.addGroup(gPaint.length, gGlass.length, 1); gg.computeVertexNormals();
-  const pd = paintM.clone(); pd.side = THREE.DoubleSide; const gd = glassM.clone(); gd.side = THREE.DoubleSide; gd.opacity = 0.78;
-  const green = new THREE.Mesh(gg, [pd, gd]); green.castShadow = true; root.add(green);
+  gg.setIndex([...gPaint, ...gGlass, ...gBlack]); gg.addGroup(0, gPaint.length, 0); gg.addGroup(gPaint.length, gGlass.length, 1); gg.addGroup(gPaint.length + gGlass.length, gBlack.length, 2); gg.computeVertexNormals();
+  const pd = paintM.clone(); pd.side = THREE.DoubleSide; const gd = glassM.clone(); gd.side = THREE.DoubleSide; gd.opacity = 0.86; gd.envMapIntensity = 1.8;
+  const gloss = new THREE.MeshPhysicalMaterial({ color: "#0c0d10", roughness: 0.15, clearcoat: 1, envMap: env, side: THREE.DoubleSide });
+  const green = new THREE.Mesh(gg, [pd, gd, gloss]); green.castShadow = true; root.add(green);
   void lower;
   // arches + skirts (black), wheels
   const tyreM = new THREE.MeshStandardMaterial({ color: "#1a1a1c", roughness: 0.9 });
@@ -313,10 +354,10 @@ export const sedan = (paint: string, env: THREE.Texture) => {
   const wheels: THREE.Group[] = [];
   for (const x of [xf, xr]) for (const s of [-1, 1]) {
     const wg = new THREE.Group();
-    const tyre = new THREE.Mesh(new THREE.TorusGeometry(tr - 0.1, 0.105, 16, 40), tyreM); tyre.scale.z = 1.15; wg.add(tyre);
-    const rim = new THREE.Mesh(new THREE.CircleGeometry(tr - 0.09, 36), new THREE.MeshStandardMaterial({ map: rimTex, metalness: 0.8, roughness: 0.3, envMap: env })); rim.position.z = s * 0.05; if (s < 0) rim.rotation.y = Math.PI; wg.add(rim);
-    wg.position.set(x, tr, s * (W / 2 - 0.12)); wg.traverse((o) => { o.castShadow = true; }); root.add(wg); wheels.push(wg);
-    const arch = new THREE.Mesh(new THREE.TorusGeometry(tr + 0.06, 0.03, 8, 24, Math.PI), blackM); arch.position.set(x, tr, s * (W / 2 - 0.02)); root.add(arch);
+    const tyre = new THREE.Mesh(new THREE.TorusGeometry(tr - 0.11, 0.11, 16, 40), tyreM); tyre.scale.z = 1.3; wg.add(tyre);
+    const rim = new THREE.Mesh(new THREE.CircleGeometry(tr - 0.1, 36), new THREE.MeshStandardMaterial({ map: rimTex, metalness: 0.8, roughness: 0.3, envMap: env })); rim.position.z = s * 0.05; if (s < 0) rim.rotation.y = Math.PI; wg.add(rim);
+    wg.position.set(x, tr, s * (W / 2 - 0.1)); wg.traverse((o) => { o.castShadow = true; }); root.add(wg); wheels.push(wg);
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(tr + 0.035, 0.035, 8, 24, Math.PI), blackM); arch.position.set(x, tr, s * (W / 2 - 0.02)); root.add(arch);
     const well = new THREE.Mesh(new THREE.CircleGeometry(tr + 0.05, 24, 0, Math.PI), blackM); well.position.set(x, tr, s * (W / 2 - 0.2)); if (s < 0) well.rotation.y = Math.PI; root.add(well);
   }
   for (const s of [-1, 1]) { const sk = new THREE.Mesh(new THREE.BoxGeometry(xf - xr - 2 * tr - 0.2, 0.08, 0.04), blackM); sk.position.set((xf + xr) / 2, 0.3, s * (prof(0).hw - 0.01)); root.add(sk); }
@@ -334,6 +375,11 @@ export const sedan = (paint: string, env: THREE.Texture) => {
   const rp = prof(-L / 2 + 0.1), tb = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, rp.hw * 1.7), tail); tb.position.set(-L / 2 + 0.06, rp.belt - 0.05, 0); root.add(tb);
   const plateM = new THREE.MeshStandardMaterial({ color: "#f2f2ee", roughness: 0.5 });
   for (const x of [L / 2 - 0.1, -L / 2 + 0.08]) { const pp = prof(x), pl = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.11, 0.48), plateM); pl.position.set(x, (pp.sill + pp.belt) / 2 - 0.02, 0); root.add(pl); }
+  // chrome window trim along the belt, black lower intake, a thin LED daytime-running strip across the nose
+  for (const sd of [-1, 1]) { const pts: THREE.Vector3[] = []; for (let i = 0; i <= 24; i++) { const x = gx0 + 0.04 + ((gx1 - gx0 - 0.08) * i) / 24, p = prof(x); pts.push(V(x, p.belt + 0.012, sd * p.hw * 0.945)); }
+    root.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.009, 6), chromeM)); }
+  { const ip = prof(L / 2 - 0.2), intake = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, ip.hw * 1.45), blackM); intake.position.set(L / 2 - 0.2, ip.sill + 0.03, 0); root.add(intake);
+    const dp = prof(L / 2 - 0.15), drl = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.014, dp.hw * 1.7), led); drl.position.set(L / 2 - 0.12, dp.belt - 0.03, 0); root.add(drl); }
   // interior: seats, dashboard with a glowing cluster, steering wheel
   const seatM = new THREE.MeshStandardMaterial({ color: "#2a2c32", roughness: 0.8 });
   for (const [x, z] of [[0.15, 0.4], [0.15, -0.4], [-0.75, 0.4], [-0.75, -0.4]] as [number, number][]) {
