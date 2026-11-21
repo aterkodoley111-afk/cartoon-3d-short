@@ -3,6 +3,10 @@
 One entry per finished video, newest first. Each entry records what went wrong, what fixed it and what changed in
 SKILL.md, so the next video starts from a better place. SKILL.md holds the distilled rules; this file keeps the history.
 
+## Captions turned on (Nov 2026)
+- User asked for captions after the 13-video study. Added templates/captions/Captions.tsx (chunkWords + CaptionText +
+  Captions) and switched the standing rule to captions ON. Demo on look-lab stills: templates/captions/caption_sheet.jpg.
+
 ## Reference study v2 — 13 shorts (Nov 2026), Cast v2, chatbot prompts
 - Studied 13 reference shorts end to end (numbers per frame, OCR captions at 6 fps, audio loudness/transients, 2 fps
   contact sheets). Results distilled to references/STUDY_13_REFS.md; no reference media committed.

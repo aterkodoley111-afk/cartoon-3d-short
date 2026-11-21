@@ -35,7 +35,8 @@ The style reference is a channel studied privately (`references/`: STYLE_BIBLE.m
 - Never say the channel's name in a voice-over or description.
 
 User rules that apply:
-- No captions or labels in the video.
+- Captions ON (user, Nov 2026): burned-in 1-3-word captions, `templates/captions/Captions.tsx` driven by the
+  project's words.json, on every short. Still no other on-screen labels or text.
 - English only.
 - Voice: one steady tone.
 - Jokes are researched real facts.
@@ -70,8 +71,11 @@ Full numbers and rules: `references/STUDY_13_REFS.md`. Reference media are never
   accent colour per short; day -> blue storm night -> golden payoff arc.
 - **Mix**: -14 LUFS integrated, LRA ~2-3 LU; continuous quirky music ~8 dB under the voice; a whoosh/pop/click about
   every second (each camera move), a low boom on each reveal every 2-4 s; hard end on the last word.
-- Captions: the references burn in 1-3-word white captions with a black outline at ~70% height. The user's standing
-  rule is NO captions — keep it unless the user asks for captions.
+- **Captions (always on)**: `<Captions words={words.words} />` as the LAST layer of the composition
+  (`templates/captions/Captions.tsx`). 1-3 words per chunk (break on punctuation, <= 16 chars, never across a pause
+  > 0.35 s), heavy white sans 66 px at 1080 w with an 11 px black outline + soft drop shadow, centred at 70% of the
+  height, pops in 0.86 -> 1.0 over 4 frames on the first word, stays until the next chunk. Check frames where a face
+  sits at 65-75% height and move the camera, not the caption. Example sheet: `templates/captions/caption_sheet.jpg`.
 - Topic -> script -> SEO chatbot prompts for YouTube Shorts and Instagram Reels: `prompts/`.
 
 ## Get better after every video (mandatory last step)
