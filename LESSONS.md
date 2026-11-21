@@ -3,6 +3,19 @@
 One entry per finished video, newest first. Each entry records what went wrong, what fixed it and what changed in
 SKILL.md, so the next video starts from a better place. SKILL.md holds the distilled rules; this file keeps the history.
 
+## Reference study v2 — 13 shorts (Nov 2026), Cast v2, chatbot prompts
+- Studied 13 reference shorts end to end (numbers per frame, OCR captions at 6 fps, audio loudness/transients, 2 fps
+  contact sheets). Results distilled to references/STUDY_13_REFS.md; no reference media committed.
+- Measured: -14 LUFS / LRA 1.7-3.2 LU on all 13; camera moving in 85-100% of frames; picture change every 1.2-1.5 s;
+  luma 0.44, contrast 0.20, HSV sat 0.46; blue vs warm orange palette; 7-beat script with "You see," pivot.
+- Automatic hard-cut detection under-counts these videos (continuous camera moves + crossfades); a 2 fps
+  histogram+thumbnail change count calibrated by eye (japan 0-16 s: 13 real changes vs 15 detected) is the usable metric.
+- Built Cast v2 (templates/cast2/chars2.ts): canvas drawer for white-head ink characters with patterned fabric,
+  painted hats/hair, 16 expressions, props, lean poses. Arms holding a prop read best with a {a:0.35, e:1.9}
+  (hand out to the side at chest height); inward-bent arms hide the prop behind the torso/head.
+- Prompts for topic -> script -> voice script -> approval -> SEO: prompts/youtube_shorts_prompt.md and
+  prompts/instagram_reels_prompt.md.
+
 ## Video 6: The Volcano That Didn't Erupt (Tangiwai, Christmas Eve 1953), 2026-11-17
 
 - Result: 66.6 s, 1440x2560 (rendered 1080x1920, lanczos upscale), 17 shots / 31 camera setups, user's ElevenLabs

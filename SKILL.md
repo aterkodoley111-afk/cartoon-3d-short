@@ -47,6 +47,33 @@ User rules that apply:
 - Ask who voices it TOGETHER with script approval (own recording / ElevenLabs etc. / offline AI voice) and give the
   script as one flowing paste-ready block for a TTS tool. Don't generate an AI voice first.
 
+## Reference study v2: 13 shorts (Nov 2026) — apply to EVERY new short
+Full numbers and rules: `references/STUDY_13_REFS.md`. Reference media are never stored or shared.
+- **Script** = 7 beats: HOOK (0-3 s, one sentence <= 15 words: strange exact action + number + stakes) -> MOCKERY
+  (one mocking quoted line) -> ESCALATION ("But it gets weirder", 2-3 numbered details) -> TEST (seems to fail) ->
+  "YOU SEE," (mechanism + one physical metaphor) -> PAYOFF (spectacular proof) -> BUTTON (ironic callback, video ends
+  on the last word). 170-200 words, ~170 wpm, 56-70 s, pauses total <= 6 s, no intro/CTA/outro.
+- **Characters** = Cast v2 (`templates/cast2/chars2.ts`, sheet `templates/cast2/cast_v2_sheet.jpg`): white round
+  heads with heavy ink, dot eyes, thick acting brows, textured painted hair/hats, patterned fabric torsos with belts,
+  badges and props, thin ink limbs, always leaning/tilted. Draw with `drawToon2(ctx, look, pose)` into the 600x1000
+  card space of `Lab.card` (feet at y 975). 16 expressions incl. furious glow eyes, tears, sweat, scream.
+- **Visuals follow every noun** the narrator says; numbers become physical props (counters, calendars, gauges);
+  science gets a 3D metaphor (cutaway, x-ray, brain control room, heat colours, aerial map); a reaction close-up after
+  every claim; a macro insert every 5-10 s; crowds for "everyone".
+- **Editing**: a new picture every 1.2-1.5 s (40-55 per minute), mostly made by camera moves, plus 0.3-0.5 s
+  crossfades on time/place jumps (with a grade change), zoom-through transitions (into a pupil/object), iris vignettes.
+- **Camera**: moving in >= 90% of frames. Each 10 s: one slow push-in (+2..8%/s), one lateral/orbit move, at most one
+  fast fly-over/whip. Low angles for power, top-down for maps/crowds.
+- **World look** = `templates/looklab/` (PBR sun + sky, no ink on the world, 150k-blade grass, full oaks, cumulus,
+  glossy lofted car with glass/interior/driver). Strong key + coloured practicals, god rays, haze, rain, DOF.
+- **Colour**: luma ~0.44, contrast 0.20, HSV saturation ~0.46; blue shadows vs warm orange/red subjects; one signature
+  accent colour per short; day -> blue storm night -> golden payoff arc.
+- **Mix**: -14 LUFS integrated, LRA ~2-3 LU; continuous quirky music ~8 dB under the voice; a whoosh/pop/click about
+  every second (each camera move), a low boom on each reveal every 2-4 s; hard end on the last word.
+- Captions: the references burn in 1-3-word white captions with a black outline at ~70% height. The user's standing
+  rule is NO captions — keep it unless the user asks for captions.
+- Topic -> script -> SEO chatbot prompts for YouTube Shorts and Instagram Reels: `prompts/`.
+
 ## Get better after every video (mandatory last step)
 After delivering each video, before ending the turn:
 1. Write a new entry at the top of `LESSONS.md`: result specs, what went wrong + the fix, what worked. Concrete numbers
