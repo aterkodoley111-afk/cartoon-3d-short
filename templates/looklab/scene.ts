@@ -29,7 +29,7 @@ const groundTex = () => tex(1024, 1024, (g) => {
 });
 /** asphalt with aggregate, patches, crack sealant, and the markings PAINTED in (white edge lines, yellow dashed centre) */
 const roadTex = () => tex(1024, 2048, (g) => {
-  g.fillStyle = "#58595d"; g.fillRect(0, 0, 1024, 2048);
+  g.fillStyle = "#67686c"; g.fillRect(0, 0, 1024, 2048);
   for (let i = 0; i < 40; i++) { const x = hash(i, 11) * 1024, y = hash(i, 12) * 2048, r = 60 + 200 * hash(i, 13); const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, hash(i, 14) > 0.5 ? "rgba(120,120,122,0.22)" : "rgba(30,30,34,0.25)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r); }
   // chip-seal aggregate: many small light and dark stones with a dark gap between them
   for (let i = 0; i < 140000; i++) { const v = 50 + hash(i, 15) * 120, x = hash(i, 16) * 1024, y = hash(i, 17) * 2048, r = 0.6 + hash(i, 26) * 1.6; g.fillStyle = `rgba(${v},${v - 2},${v - 4},0.7)`; g.fillRect(x, y, r, r * (0.7 + 0.6 * hash(i, 27))); }
@@ -195,8 +195,9 @@ export class Lab {
     const tree1 = oak(3); tree1.position.set(8.5, 0, -18); R.add(tree1);
     for (let i = 0; i < 6; i++) { const t = oak(10 + i, 9 + 3 * hash(i, 111)); t.position.set((i % 2 ? 1 : -1) * (60 + 40 * hash(i, 112)), 0, -260 - i * 140); R.add(t); }
     // grass: dense meadow on both verges and around the oak (real blades only where the lens is close)
-    const verge = (i: number): [number, number, number] | null => { const z = 20 - 90 * hash(i, 121), side = hash(i, 122) > 0.5 ? 1 : -1, x = side * (5.2 + 8 * hash(i, 123) ** 1.3); return [x, 0, z]; };
-    R.add(grass(170000, verge, 0.34));
+    const verge = (i: number): [number, number, number] | null => { const z = 20 - 90 * hash(i, 121), side = hash(i, 122) > 0.5 ? 1 : -1, x = side * (5.2 + 8 * hash(i, 123) ** 1.3); return Math.hypot(x - 6.9, z + 16.7) < 2.4 ? null : [x, 0, z]; };
+    const mowed = (i: number): [number, number, number] | null => { const a = hash(i, 125) * 6.28, r = 2.6 * Math.sqrt(hash(i, 126)); return [6.9 + r * Math.cos(a), 0, -16.7 + r * Math.sin(a)]; };
+    R.add(grass(170000, verge, 0.34)); R.add(grass(26000, mowed, 0.07));
     // cars: a red hatchback on the road toward us, a white SUV further back
     const envC = skyEnv(false);
     this.car1 = sedan("#b8141c", envC); this.car1.root.position.set(1.8, 0.06, -6); this.car1.root.rotation.y = -Math.PI / 2; R.add(this.car1.root);
@@ -216,7 +217,7 @@ export class Lab {
     { const n = 7000, head = new THREE.SphereGeometry(0.022, 8, 6); head.scale(1, 0.55, 1);
       const fm = new THREE.MeshStandardMaterial({ roughness: 0.7 }), fl = new THREE.InstancedMesh(head, fm, n), m = new THREE.Matrix4(), c = new THREE.Color();
       const stems: number[] = [];
-      for (let i = 0; i < n; i++) { const pl = verge(i * 7 + 3)!, y = 0.08 + 0.26 * hash(i, 131) ** 1.5, sc = 0.7 + 0.8 * hash(i, 132); m.compose(V(pl[0], y, pl[2]), new THREE.Quaternion(), V(sc, sc, sc)); fl.setMatrixAt(i, m);
+      for (let i = 0; i < n; i++) { const pl = (verge(i * 7 + 3) ?? mowed(i))!, y = 0.08 + 0.26 * hash(i, 131) ** 1.5, sc = 0.7 + 0.8 * hash(i, 132); m.compose(V(pl[0], y, pl[2]), new THREE.Quaternion(), V(sc, sc, sc)); fl.setMatrixAt(i, m);
         const k = hash(i, 133); fl.setColorAt(i, k < 0.5 ? c.set("#f3c623") : k < 0.85 ? c.set("#f4f2ea") : c.set("#8a5ac8")); stems.push(pl[0], 0, pl[2], pl[0], y, pl[2]); }
       fl.receiveShadow = true; fl.frustumCulled = false; R.add(fl);
       const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.Float32BufferAttribute(stems, 3)); R.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: "#4f7a2a" }))); }

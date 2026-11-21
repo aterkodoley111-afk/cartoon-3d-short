@@ -46,3 +46,13 @@ Still open: ink keeps the darkest 2% at 0.04 (ref 0.16, haze); car still slightl
   final grade luma 0.54 / contrast 0.22 / sat 0.39 vs ref 0.53 / 0.22 / 0.37.
 - Props must not sit on the horizon line right behind a hero object (the sign peeked over the car roof): check
   every setup's background.
+
+## v6: sitting like the references (sheet templates/looklab/v6_test_sheet.jpg)
+Reference seated shots (office chairs, benches, deck chair, throne, hospital chair, car seat) are almost never
+straight-on: the body is 3/4, thighs run FORWARD out of the lap toward the facing side with the knee bent ~90 deg,
+shins drop straight to planted feet; legs often crossed; hands on the lap / holding a prop; the chair is seen 3/4 so
+its seat, arms and back frame the body; nothing grows over the legs (floors, decks, mowed lawn).
+Implemented: `legs: "sit"` + `facing` beyond +-0.15 draws the 3/4 sit (far leg higher and darker, near leg in front,
+`cross: true` lays it over), drawn AFTER the torso; frontal sit keeps the knee shapes. Seat people on mowed patches
+(blades skip a 2.4 m circle, 0.07 m lawn inside). Grade on 8 matched pairs: ours luma 0.52 / con 0.22 / sat 0.39 /
+p2 0.10, ref 0.51 / 0.21 / 0.41 / 0.14. Asphalt base lightened to #67686c (ref roads are lighter grey).

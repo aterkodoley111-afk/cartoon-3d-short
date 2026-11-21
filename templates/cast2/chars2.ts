@@ -21,7 +21,7 @@ export type Look2 = {
 export type Arm2 = { a: number; e: number }; // shoulder angle (0 = hanging down, + = forward/out to that side), elbow bend
 export type Pose2 = {
   expr: Expr2; lean?: number; headTilt?: number; facing?: number; legs?: "stand" | "walk" | "run" | "sit" | "jump" | "crouch" | "wide";
-  phase?: number; armL?: Arm2; armR?: Arm2; prop?: "mug" | "phone" | "cash" | "hammer" | "stopwatch" | "sign" | "axe" | "pot" | "none"; seatH?: number; blink?: boolean;
+  phase?: number; armL?: Arm2; armR?: Arm2; prop?: "mug" | "phone" | "cash" | "hammer" | "stopwatch" | "sign" | "axe" | "pot" | "none"; seatH?: number; blink?: boolean; cross?: boolean;
 };
 const INK = "#16121a", LIMB = "#1b1519";
 /** scene light on the cast: shadow tint (sky bounce by day, warm by lamps) and strength; set per shot */
@@ -63,7 +63,7 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
   g.save();
   // whole-body lean about the feet
   g.translate(300, 975); g.rotate(P0.lean ?? 0); g.translate(-300, -975);
-  const sit = legs === "sit", seatY = 975 - (P0.seatH ?? 170);
+  const sit = legs === "sit", seatY = 975 - (P0.seatH ?? 170), sdir = sit && Math.abs(f) > 0.15 ? Math.sign(f) : 0;
   const hipY = sit ? seatY : legs === "crouch" ? 975 - B.leg * 0.62 : legs === "jump" ? 975 - B.leg * 0.95 : 975 - B.leg;
   const tTop = hipY - B.th + 34, tBot = hipY + 30, cx = 300, tw = B.tw;
   // ---- legs (behind the torso)
@@ -72,7 +72,7 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
   const legPair: [P, P, P][] = [];
   for (const sd of [-1, 1]) {
     const hx = cx + sd * tw * 0.2;
-    if (sit) { const kx = cx + sd * tw * 0.26; legPair.push([[kx, seatY + 20], [kx + sd * 3, (seatY + 975) / 2], [kx + sd * 8, 975]]); }
+    if (sit) { if (!sdir) { const kx = cx + sd * tw * 0.26; legPair.push([[kx, seatY + 20], [kx + sd * 3, (seatY + 975) / 2], [kx + sd * 8, 975]]); } }
     else if (legs === "walk" || legs === "run") {
       const amp = legs === "run" ? 0.75 : 0.38, s = Math.sin(ph * Math.PI * 2 + (sd > 0 ? 0 : Math.PI)), lift = Math.max(0, Math.cos(ph * Math.PI * 2 + (sd > 0 ? 0 : Math.PI)));
       const ax = hx + s * B.leg * amp * 0.55 + f * 10, ay = 975 - lift * (legs === "run" ? 70 : 26), kx = (hx + ax) / 2 + (legs === "run" ? 30 * lift : 8) * (f >= 0 ? 1 : -1), ky = (hipY + ay) / 2;
@@ -115,8 +115,20 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
   t.clip(body, () => { g.save(); g.translate(-7, -5); t.path(body); g.lineWidth = 10; g.strokeStyle = "rgba(255,248,230,0.22)"; g.stroke(); g.restore(); });
   t.path(body); g.lineWidth = 9; g.strokeStyle = INK; g.lineJoin = "round"; g.stroke();
   // seated: the thighs come toward the lens, so the knees read as two rounded pant shapes over the lap
-  if (sit) for (const sd of [-1, 1]) { const kx = cx + sd * tw * 0.26, ky = seatY + 14, rx = legW * 2.1, ry = legW * 1.6;
+  if (sit && !sdir) for (const sd of [-1, 1]) { const kx = cx + sd * tw * 0.26, ky = seatY + 14, rx = legW * 2.1, ry = legW * 1.6;
     t.ell(kx, ky, rx, ry, 0, legC, 7); t.ell(kx - rx * 0.3, ky - ry * 0.35, rx * 0.45, ry * 0.3, 0, "rgba(255,255,255,0.14)"); }
+  // seated 3/4 (as in the references): thighs run forward out of the lap toward the facing side, knees bent ~90 deg,
+  // shins straight down to planted feet; the far leg sits a little higher and darker. `cross` lays the near leg over.
+  if (sit && sdir) {
+    const thigh = B.leg * 0.48, d = sdir;
+    const legDraw = (pts: P[], col: string, footDir: number) => { t.line(pts, legW + 5, INK); t.line(pts, legW + 1, col); const a = pts[pts.length - 1]; t.ell(a[0] + footDir * 12, a[1] - 2, 19, 10, 0, LIMB); };
+    const farC = sh(legC, 0.75);
+    const h0: P = [cx - d * tw * 0.1, seatY + 4], k0: P = [h0[0] + d * thigh * 0.8, seatY + 14], a0: P = [k0[0] + d * 6, 975 - 8];
+    legDraw([h0, k0, a0], farC, d);
+    const h1: P = [cx + d * tw * 0.12, seatY + 14];
+    if (P0.cross) { const k1: P = [k0[0] + d * 6, seatY - 14], a1: P = [k1[0] + d * 46, seatY + 96]; legDraw([h1, k1, a1], legC, d); }
+    else { const k1: P = [h1[0] + d * thigh * 0.85, seatY + 26], a1: P = [k1[0] + d * 10, 975 - 2]; legDraw([h1, k1, a1], legC, d); }
+  }
   // sleeves: short cloth stubs at the shoulders
   const sleeve = (sd: number, A: Arm2) => { if (L.top === "tank" || L.top === "vest" && !L.col2) return; const pts = armPts(sd, A); const d = [pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]], n = Math.hypot(d[0], d[1]);
     const ex: P = [pts[0][0] + (d[0] / n) * 52, pts[0][1] + (d[1] / n) * 52]; t.line([[pts[0][0], pts[0][1] + 4], ex], 30, INK); t.line([[pts[0][0], pts[0][1] + 4], ex], 21, sleeveCol(L)); };
