@@ -193,6 +193,7 @@ export class Lab {
     for (let z = 600; z > -1200; z -= 55) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.17, 10, 10), poleM); p.position.set(-17, 5, z); p.castShadow = true; R.add(p); const arm = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 0.12), poleM); arm.position.set(-17, 9.5, z); R.add(arm); }
     // the oak by the road + a far line of trees
     const tree1 = oak(3); tree1.position.set(8.5, 0, -18); R.add(tree1);
+    const tree2 = oak(7, 14); tree2.position.set(-13.5, 0, -9); R.add(tree2);
     for (let i = 0; i < 6; i++) { const t = oak(10 + i, 9 + 3 * hash(i, 111)); t.position.set((i % 2 ? 1 : -1) * (60 + 40 * hash(i, 112)), 0, -260 - i * 140); R.add(t); }
     // grass: dense meadow on both verges and around the oak (real blades only where the lens is close)
     const verge = (i: number): [number, number, number] | null => { const z = 20 - 90 * hash(i, 121), side = hash(i, 122) > 0.5 ? 1 : -1, x = side * (5.2 + 8 * hash(i, 123) ** 1.3); return Math.hypot(x - 6.9, z + 16.7) < 2.4 ? null : [x, 0, z]; };
@@ -221,6 +222,17 @@ export class Lab {
         const k = hash(i, 133); fl.setColorAt(i, k < 0.5 ? c.set("#f3c623") : k < 0.85 ? c.set("#f4f2ea") : c.set("#8a5ac8")); stems.push(pl[0], 0, pl[2], pl[0], y, pl[2]); }
       fl.receiveShadow = true; fl.frustumCulled = false; R.add(fl);
       const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.Float32BufferAttribute(stems, 3)); R.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: "#4f7a2a" }))); }
+    // story props for 'every car hits this spot': a tally board of crashes nailed to the oak (marks, no text), a torn-off
+    // bumper leaning on the trunk, a bent wing mirror and broken light shards in the grass, fresh bark scars
+    { const board = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.46, 0.03), new THREE.MeshStandardMaterial({ map: tex(256, 192, (g) => { g.fillStyle = "#c8a46a"; g.fillRect(0, 0, 256, 192); for (let i = 0; i < 40; i++) { g.strokeStyle = "rgba(90,60,30,0.35)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, i * 5); g.lineTo(256, i * 5 + 3); g.stroke(); }
+        g.strokeStyle = "#1c1c20"; g.lineWidth = 7; g.lineCap = "round"; for (let grp = 0; grp < 4; grp++) for (let r = 0; r < 2; r++) { const x0 = 22 + grp * 58, y0 = 30 + r * 80; for (let k = 0; k < 4; k++) { g.beginPath(); g.moveTo(x0 + k * 11, y0); g.lineTo(x0 + k * 11, y0 + 52); g.stroke(); } if (grp + r < 4) { g.beginPath(); g.moveTo(x0 - 6, y0 + 44); g.lineTo(x0 + 40, y0 + 8); g.stroke(); } } }), roughness: 0.9 }));
+      board.position.set(8.5 - 0.15, 1.6, -18 + 0.62); board.rotation.y = 0.1; board.castShadow = true; R.add(board);
+      const bump = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.32, 24, 1, true, -0.6, 1.2), new THREE.MeshPhysicalMaterial({ color: "#2d64b0", roughness: 0.35, clearcoat: 1, side: THREE.DoubleSide }));
+      bump.rotation.set(0.25, 0.4, Math.PI / 2 - 0.35); bump.position.set(8.0, 0.35, -17.05); bump.castShadow = true; R.add(bump);
+      const mir = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), new THREE.MeshStandardMaterial({ color: "#2a2a2e", roughness: 0.5 })); mir.scale.set(1.3, 0.7, 0.9); mir.position.set(6.0, 0.06, -15.0); R.add(mir);
+      const shardM = [new THREE.MeshStandardMaterial({ color: "#d62a1c", roughness: 0.2, transparent: true, opacity: 0.85 }), new THREE.MeshStandardMaterial({ color: "#9fb4c4", roughness: 0.1, transparent: true, opacity: 0.6 }), new THREE.MeshStandardMaterial({ color: "#f0a020", roughness: 0.2 })];
+      for (let i = 0; i < 18; i++) { const sh2 = new THREE.Mesh(new THREE.TetrahedronGeometry(0.012 + 0.018 * hash(i, 161)), shardM[i % 3]); sh2.position.set(7.0 + 1.6 * hash(i, 162), 0.03, -17.6 + 1.6 * hash(i, 163)); sh2.rotation.set(hash(i, 164) * 6, hash(i, 165) * 6, 0); R.add(sh2); }
+      const scar = new THREE.Mesh(new THREE.CircleGeometry(0.22, 16), new THREE.MeshStandardMaterial({ color: "#d9c39a", roughness: 0.9 })); scar.scale.set(1, 1.6, 1); scar.position.set(8.5 - 0.35, 0.55, -18 + 0.45); scar.rotation.y = -0.6; R.add(scar); }
     // roadside props (no text): a triangular warning sign, a stack of old tyres by the oak, traffic cones on the shoulder,
     // a farm mailbox, round hay bales in the fields
     { const post = new THREE.MeshStandardMaterial({ color: "#9aa0a6", metalness: 0.7, roughness: 0.4 });
@@ -318,11 +330,11 @@ export const sedan = (paint: string, env: THREE.Texture) => {
     return { sill, belt, roof, hw, cabin: roofU > 0.02 && u > 0.12 && u < 0.78 };
   };
   // lower body: sill to belt (bonnet, flanks, boot deck), a rounded superellipse section
-  const NX = 80, NC = 28, pos: number[] = [], idx: number[] = [];
+  const NX = 80, NC = 44, pos: number[] = [], idx: number[] = [];
   for (let i = 0; i <= NX; i++) {
     const x = -L / 2 + (L * i) / NX, p = prof(x), tip = Math.min(1, Math.min(i, NX - i) / 3);
     for (let j = 0; j <= NC; j++) {
-      const a = (j / NC) * Math.PI * 2, cs = Math.cos(a), sn = Math.sin(a), e = 0.2;
+      const a = (j / NC) * Math.PI * 2, cs = Math.cos(a), sn = Math.sin(a), e = 0.12;
       const sx = Math.sign(cs) * Math.abs(cs) ** e, sy = Math.sign(sn) * Math.abs(sn) ** (sn > 0 ? 0.6 : e);
       const mid = p.sill + 0.42 * (p.belt - p.sill);
       let y = sy > 0 ? mid + sy * (p.belt - mid) : mid + sy * (mid - p.sill), z = sx * p.hw * (sy > 0 ? 1 - 0.08 * sy * sy : 1);

@@ -46,7 +46,7 @@ const Inner: React.FC = () => {
     // dust kicked up behind the speeding car, and under the farmer's step
     L.dust(1.8, 0.1, -10.8, 22, [2.4, 0.9, 5], 1.3, 0.32); L.dust(0.62, 0.07, -23.85, 6, [0.7, 0.12, 0.4], 0.32, 0.5);
     // 7: the farmer's brother sitting on the stack of old tyres, hands on his knees, squinting at the road
-    L.card(c2({ hat: "beanie", hatCol: "#3a6ea8", hatCol2: "#e9e4d8", top: "overalls", col: "#e9e4d8", col2: "#3d5f9c", beard: "#6a4a2e", pants: "#3d5f9c" }, { expr: "suspicious", legs: "sit", seatH: 230, facing: -0.55, lean: 0.06, armL: { a: 0.45, e: 0.35 }, armR: { a: 0.45, e: 0.35 }, headTilt: 0.05 }, 7), 7.2, 0, -16.95, K, 1080, 1800, 0.35);
+    L.card(c2({ hat: "beanie", hatCol: "#3a6ea8", hatCol2: "#e9e4d8", top: "overalls", col: "#e9e4d8", col2: "#3d5f9c", beard: "#6a4a2e", pants: "#3d5f9c" }, { expr: "suspicious", legs: "sit", seatH: 230, facing: -0.55, lean: 0.08, handsOnKnees: true, headTilt: 0.05 }, 7), 7.2, 0, -16.95, K, 1080, 1800, 0.35);
     line.forEach(([o, po], i) => L.card(c2(o, po, 20 + i), 6.0 + i * 0.85, 0, -10.2 - 0.25 * (i % 2), K));
     return L;
   }, [scene]);

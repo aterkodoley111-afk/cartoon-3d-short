@@ -56,3 +56,12 @@ Implemented: `legs: "sit"` + `facing` beyond +-0.15 draws the 3/4 sit (far leg h
 `cross: true` lays it over), drawn AFTER the torso; frontal sit keeps the knee shapes. Seat people on mowed patches
 (blades skip a 2.4 m circle, 0.07 m lawn inside). Grade on 8 matched pairs: ours luma 0.52 / con 0.22 / sat 0.39 /
 p2 0.10, ref 0.51 / 0.21 / 0.41 / 0.14. Asphalt base lightened to #67686c (ref roads are lighter grey).
+
+## v7 (sheet templates/looklab/v7_test_sheet.jpg)
+- `handsOnKnees: true` (seated 3/4): 2-bone IK arms (upper 112, lower 104, elbow bends outward); the facing-side
+  hand rests on the near knee, the other on its own thigh near the body (both on the far knee crosses the torso).
+- Car section superellipse e 0.12 + 44 segments: crisp shoulder edges like the reference cars.
+- Tree shadows across the road: with the sun at ~27 deg from the left, crown shadows land 1.7 x height to the
+  right; a sun-side tree must stand ~13-14 m from the road centre to throw its crown shadow onto the lanes.
+- Story props: evidence of the story at the location (tally board of crashes with marks only, torn-off bumper,
+  bent mirror, small dark light/glass shards, bark scar). Keep shards few, small and dark (white ones read as confetti).
