@@ -34,3 +34,15 @@ mixed-height grass with 14% dry tufts + 7000 wildflowers, furrows along the trun
 belt trim, LED strip, lower intake, darker glass; props: warning sign, tyre stack, cones, mailbox, hay bales.
 Never put skid marks in a repeating road texture (they repeat every tile); use a single decal.
 Still open: ink keeps the darkest 2% at 0.04 (ref 0.16, haze); car still slightly soft vs ref crease lines.
+
+## v5 fixes (sheet templates/looklab/v5_test_sheet.jpg)
+- Seated characters in chairs: front-sit legs = two knee shapes (pants colour) over the lap at seat height + shins
+  straight down; hips exactly at the seat (seatH = seat m / (0.00216 * scale)); card placed at the seat front and
+  `pull`ed 0.3 m toward the lens every frame (`Lab.card(..., pull)`, rescaled by the distance ratio) so the chair
+  back stays behind the body and no tube crosses it. Frame wide enough that chair back + knees + feet read.
+- Car: real wheel-arch openings (body lower edge lifts round each wheel, radius tyre + 4.5 cm) so alloys show;
+  crisper section (superellipse e 0.2), feature crease above the wheels, rocker crease only between the wheels.
+- Haze: a screen-blend layer rgb(120,140,175) at 16% over the 3D frame lifts the darkest 2% to 0.10 (ref 0.16);
+  final grade luma 0.54 / contrast 0.22 / sat 0.39 vs ref 0.53 / 0.22 / 0.37.
+- Props must not sit on the horizon line right behind a hero object (the sign peeked over the car roof): check
+  every setup's background.

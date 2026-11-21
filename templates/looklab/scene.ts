@@ -225,7 +225,7 @@ export class Lab {
     { const post = new THREE.MeshStandardMaterial({ color: "#9aa0a6", metalness: 0.7, roughness: 0.4 });
       const sign = new THREE.Group(); const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.1, 10), post); pole.position.y = 1.05; sign.add(pole);
       const face = new THREE.Mesh(new THREE.CircleGeometry(0.42, 3), new THREE.MeshStandardMaterial({ map: tex(256, 256, (g) => { g.fillStyle = "#c8202a"; g.fillRect(0, 0, 256, 256); g.fillStyle = "#f6f4ee"; g.beginPath(); g.moveTo(128, 52); g.lineTo(218, 200); g.lineTo(38, 200); g.closePath(); g.fill(); g.fillStyle = "#16161a"; g.fillRect(118, 92, 20, 66); g.fillRect(118, 168, 20, 20); }), roughness: 0.5 }));
-      face.rotation.z = Math.PI / 2; face.position.y = 2.0; sign.add(face); sign.position.set(3.0, 0, -15.5); sign.rotation.y = 0.25; sign.traverse((o) => { o.castShadow = true; }); R.add(sign);
+      face.rotation.z = Math.PI / 2; face.position.y = 2.0; sign.add(face); sign.position.set(-4.8, 0, -34); sign.rotation.y = -0.3; sign.rotation.y = 0.25; sign.traverse((o) => { o.castShadow = true; }); R.add(sign);
       const tyreM = new THREE.MeshStandardMaterial({ color: "#1c1c1e", roughness: 0.85 });
       for (let i = 0; i < 4; i++) { const ty = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.1, 12, 28), tyreM); ty.rotation.x = Math.PI / 2; ty.position.set(7.2 + (i === 3 ? 0.7 : 0), 0.1 + (i === 3 ? 0 : i * 0.2), -17.0 + (i === 3 ? 0.4 : 0)); ty.castShadow = true; R.add(ty); }
       const coneM = new THREE.MeshStandardMaterial({ color: "#ff5a14", roughness: 0.5 }), band = new THREE.MeshStandardMaterial({ color: "#f2f2f2", roughness: 0.4 });
@@ -248,12 +248,12 @@ export class Lab {
       sp.position.set(x + (hash(i, 152) - 0.5) * spread[0], y + hash(i, 153) * spread[1], z + (hash(i, 154) - 0.5) * spread[2]); const k = size * (0.6 + 0.8 * hash(i, 155)); sp.scale.set(k, k * 0.8, 1); this.root.add(sp); }
   }
   /** a flat ink character card (the cast keeps its own look); drawn into a canvas, lit softly by the scene */
-  card(draw: (p: Pen) => void, x: number, y: number, z: number, scale = 1, w = 1080, h = 1800) {
+  card(draw: (p: Pen) => void, x: number, y: number, z: number, scale = 1, w = 1080, h = 1800, pull = 0) {
     const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d")!; g.scale(w / 600, h / 1000); draw(new Pen(g));
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     const geo = new THREE.PlaneGeometry(600 * 0.00216, 1000 * 0.00216); geo.translate(0, (975 - 500) * 0.00216 * -1 * -1, 0);
     const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, toneMapped: true, color: new THREE.Color(0.95, 0.93, 0.88) }));
-    m.position.set(x, y, z); m.scale.setScalar(scale); m.renderOrder = 1; this.root.add(m); this.cards.push(m);
+    m.position.set(x, y, z); m.scale.setScalar(scale); m.renderOrder = 1; m.userData = { base: V(x, y, z), scale, pull }; this.root.add(m); this.cards.push(m);
     // shadow twin: an invisible copy turned to FACE THE SUN, so the full silhouette falls on the ground beside the
     // figure (a camera-facing card would only throw a thin sliver straight behind itself)
     const sh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide }));
@@ -269,7 +269,12 @@ export class Lab {
     cam.position.copy(s.pos); cam.lookAt(s.look); cam.fov = s.fov; cam.near = 0.05; cam.far = 6000; cam.updateProjectionMatrix();
     this.sky.position.copy(cam.position);
     for (const m of this.clouds) m.lookAt(cam.position);
-    for (const m of this.cards) m.lookAt(cam.position.x, m.position.y, cam.position.z);
+    for (const m of this.cards) { const u = m.userData as { base: THREE.Vector3; scale: number; pull: number };
+      if (u.pull) { const d = V(cam.position.x - u.base.x, 0, cam.position.z - u.base.z), L0 = d.length(); d.normalize();
+        // move toward the lens by `pull` and shrink by the distance ratio so it keeps its on-screen size
+        const L1 = Math.max(0.3, L0 - u.pull); m.position.copy(u.base).addScaledVector(d, L0 - L1); m.scale.setScalar(u.scale * L1 / L0);
+        m.position.y = u.base.y + (cam.position.y - u.base.y) * (1 - L1 / L0); }
+      m.lookAt(cam.position.x, m.position.y, cam.position.z); }
     WIND.time.value = t;
     // a high, warm afternoon sun from behind-left of the lens (soft shadows toward the camera-right)
     const dir = SUN_DIR;
@@ -301,7 +306,9 @@ export const sedan = (paint: string, env: THREE.Texture) => {
     const cl = (v: number) => Math.max(0, Math.min(1, v));
     const nose = cl((u - 0.88) / 0.12), tail = cl((0.08 - u) / 0.08);
     // a low, long bonnet that falls toward a rounded nose; the nose tucks in (plan + height) like a real sedan
-    const sill = 0.3 + 0.13 * nose ** 2 + 0.1 * tail ** 2;
+    // wheel arches: the body's lower edge lifts into a round opening over each wheel (radius tyre + 4 cm)
+    const arch = (xw: number) => { const dx = x - xw, R0 = tr + 0.045; return Math.abs(dx) < R0 ? tr + Math.sqrt(R0 * R0 - dx * dx) : 0; };
+    const sill = Math.max(0.3 + 0.13 * nose ** 2 + 0.1 * tail ** 2, arch(xf), arch(xr));
     const bonnet = 0.93 - 0.15 * cl((u - 0.68) / 0.32) ** 1.3 - 0.13 * nose ** 2.4, boot = 1.0 - 0.05 * cl((0.2 - u) / 0.2) - 0.1 * tail ** 2.2;
     const belt = u > 0.68 ? bonnet : u < 0.2 ? boot : 0.93 + 0.07 * (0.68 - u) / 0.48;
     const roofU = u < 0.22 ? (u - 0.12) / 0.1 : u > 0.62 ? (0.78 - u) / 0.16 : 1;
@@ -314,7 +321,7 @@ export const sedan = (paint: string, env: THREE.Texture) => {
   for (let i = 0; i <= NX; i++) {
     const x = -L / 2 + (L * i) / NX, p = prof(x), tip = Math.min(1, Math.min(i, NX - i) / 3);
     for (let j = 0; j <= NC; j++) {
-      const a = (j / NC) * Math.PI * 2, cs = Math.cos(a), sn = Math.sin(a), e = 0.3;
+      const a = (j / NC) * Math.PI * 2, cs = Math.cos(a), sn = Math.sin(a), e = 0.2;
       const sx = Math.sign(cs) * Math.abs(cs) ** e, sy = Math.sign(sn) * Math.abs(sn) ** (sn > 0 ? 0.6 : e);
       const mid = p.sill + 0.42 * (p.belt - p.sill);
       let y = sy > 0 ? mid + sy * (p.belt - mid) : mid + sy * (mid - p.sill), z = sx * p.hw * (sy > 0 ? 1 - 0.08 * sy * sy : 1);
@@ -375,11 +382,14 @@ export const sedan = (paint: string, env: THREE.Texture) => {
   const rp = prof(-L / 2 + 0.1), tb = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, rp.hw * 1.7), tail); tb.position.set(-L / 2 + 0.06, rp.belt - 0.05, 0); root.add(tb);
   const plateM = new THREE.MeshStandardMaterial({ color: "#f2f2ee", roughness: 0.5 });
   for (const x of [L / 2 - 0.1, -L / 2 + 0.08]) { const pp = prof(x), pl = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.11, 0.48), plateM); pl.position.set(x, (pp.sill + pp.belt) / 2 - 0.02, 0); root.add(pl); }
+  // feature crease along the flank (a sharp ridge catching the sky) + a lower rocker crease
+  for (const sd of [-1, 1]) for (const [k, r, x0, x1] of [[0.82, 0.01, -L / 2 + 0.3, L / 2 - 0.3], [0.1, 0.008, xr + tr + 0.12, xf - tr - 0.12]] as [number, number, number, number][]) { const pts: THREE.Vector3[] = []; for (let i = 0; i <= 30; i++) { const x = x0 + ((x1 - x0) * i) / 30, p = prof(x), base = 0.3; pts.push(V(x, base + k * (p.belt - base), sd * p.hw * 1.0)); }
+    root.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, r, 5), paintM)); }
   // chrome window trim along the belt, black lower intake, a thin LED daytime-running strip across the nose
   for (const sd of [-1, 1]) { const pts: THREE.Vector3[] = []; for (let i = 0; i <= 24; i++) { const x = gx0 + 0.04 + ((gx1 - gx0 - 0.08) * i) / 24, p = prof(x); pts.push(V(x, p.belt + 0.012, sd * p.hw * 0.945)); }
     root.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.009, 6), chromeM)); }
   { const ip = prof(L / 2 - 0.2), intake = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, ip.hw * 1.45), blackM); intake.position.set(L / 2 - 0.2, ip.sill + 0.03, 0); root.add(intake);
-    const dp = prof(L / 2 - 0.15), drl = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.014, dp.hw * 1.7), led); drl.position.set(L / 2 - 0.12, dp.belt - 0.03, 0); root.add(drl); }
+    const dp = prof(L / 2 - 0.1), drl = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.014, dp.hw * 1.15), led); drl.position.set(L / 2 - 0.1, dp.belt - 0.06, 0); root.add(drl); }
   // interior: seats, dashboard with a glowing cluster, steering wheel
   const seatM = new THREE.MeshStandardMaterial({ color: "#2a2c32", roughness: 0.8 });
   for (const [x, z] of [[0.15, 0.4], [0.15, -0.4], [-0.75, 0.4], [-0.75, -0.4]] as [number, number][]) {

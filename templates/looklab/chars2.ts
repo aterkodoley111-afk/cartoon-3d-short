@@ -72,7 +72,7 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
   const legPair: [P, P, P][] = [];
   for (const sd of [-1, 1]) {
     const hx = cx + sd * tw * 0.2;
-    if (sit) { const kx = hx + sd * 26, ky = seatY + 16 + 6; legPair.push([[hx, hipY], [kx, ky - 30], [kx + sd * 6, 975]]); }
+    if (sit) { const kx = cx + sd * tw * 0.26; legPair.push([[kx, seatY + 20], [kx + sd * 3, (seatY + 975) / 2], [kx + sd * 8, 975]]); }
     else if (legs === "walk" || legs === "run") {
       const amp = legs === "run" ? 0.75 : 0.38, s = Math.sin(ph * Math.PI * 2 + (sd > 0 ? 0 : Math.PI)), lift = Math.max(0, Math.cos(ph * Math.PI * 2 + (sd > 0 ? 0 : Math.PI)));
       const ax = hx + s * B.leg * amp * 0.55 + f * 10, ay = 975 - lift * (legs === "run" ? 70 : 26), kx = (hx + ax) / 2 + (legs === "run" ? 30 * lift : 8) * (f >= 0 ? 1 : -1), ky = (hipY + ay) / 2;
@@ -114,6 +114,9 @@ export const drawToon2 = (gctx: CanvasRenderingContext2D, L: Look2, P0: Pose2, s
   t.shade(body, cx - tw * 0.6, tTop, cx + tw * 0.55, tBot + 10, 0.5);
   t.clip(body, () => { g.save(); g.translate(-7, -5); t.path(body); g.lineWidth = 10; g.strokeStyle = "rgba(255,248,230,0.22)"; g.stroke(); g.restore(); });
   t.path(body); g.lineWidth = 9; g.strokeStyle = INK; g.lineJoin = "round"; g.stroke();
+  // seated: the thighs come toward the lens, so the knees read as two rounded pant shapes over the lap
+  if (sit) for (const sd of [-1, 1]) { const kx = cx + sd * tw * 0.26, ky = seatY + 14, rx = legW * 2.1, ry = legW * 1.6;
+    t.ell(kx, ky, rx, ry, 0, legC, 7); t.ell(kx - rx * 0.3, ky - ry * 0.35, rx * 0.45, ry * 0.3, 0, "rgba(255,255,255,0.14)"); }
   // sleeves: short cloth stubs at the shoulders
   const sleeve = (sd: number, A: Arm2) => { if (L.top === "tank" || L.top === "vest" && !L.col2) return; const pts = armPts(sd, A); const d = [pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]], n = Math.hypot(d[0], d[1]);
     const ex: P = [pts[0][0] + (d[0] / n) * 52, pts[0][1] + (d[1] / n) * 52]; t.line([[pts[0][0], pts[0][1] + 4], ex], 30, INK); t.line([[pts[0][0], pts[0][1] + 4], ex], 21, sleeveCol(L)); };

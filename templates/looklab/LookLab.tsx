@@ -32,7 +32,7 @@ const Inner: React.FC = () => {
     // 3: a sheriff at the roadside, furious at the speeding car
     L.card(c2({ hat: "cowboy", hatCol: "#7a4f2a", top: "uniform", col: "#b49a64", badge: true, mustache: "#4a2e1c", belt: "#3a2a1c", build: "big" }, { expr: "furious", legs: "wide", lean: 0.04, armL: { a: 0.6, e: -1.4 }, armR: { a: 1.4, e: 0.5 } }, 7), 4.3, 0, -10.5, K);
     // 4: an old local in a lawn chair under the oak with a mug of tea
-    L.card(c2({ hair: "bald", hairCol: "#d8d8dc", top: "coat", col: "#8a5a3a", mustache: "#dcdcdc", glasses: "round" }, { expr: "smug", legs: "sit", seatH: 176, facing: 0.3, armR: { a: 0.35, e: 1.9 }, prop: "mug", headTilt: -0.06 }, 9), 6.3, 0, -16.6, K);
+    L.card(c2({ hair: "bald", hairCol: "#d8d8dc", top: "coat", col: "#8a5a3a", mustache: "#dcdcdc", glasses: "round" }, { expr: "smug", legs: "sit", seatH: 153, facing: 0.3, armR: { a: 0.35, e: 1.9 }, prop: "mug", headTilt: -0.06 }, 9), 6.3, 0, -16.45, K, 1080, 1800, 0.32);
     // 5: a line-up of the cast on the verge: actions + expressions
     const line: [Look2, Pose2][] = [
       [{ hat: "hardhat", top: "hivis", col: "#ff7a1a", col2: "#3b4a62", mustache: "#3a2a1c", belt: "#2a2a2a" }, { expr: "determined", armR: { a: 0.35, e: 1.9 }, prop: "hammer", facing: 0.2 }],
@@ -49,14 +49,14 @@ const Inner: React.FC = () => {
     return L;
   }, [scene]);
   const [fx] = useState(() => ({ lens: new LensBlur({ maxCoC: 24, nearScale: 1.0 }), bloom: new BloomEffect({ blendFunction: BlendFunction.ADD, intensity: 0.45, luminanceThreshold: 0.85, luminanceSmoothing: 0.25, mipmapBlur: true, radius: 0.7 }),
-    tone: new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC }), sat: new HueSaturationEffect({ saturation: 0.24 }), bc: new BrightnessContrastEffect({ brightness: -0.06, contrast: -0.03 }), vig: new VignetteEffect({ offset: 0.35, darkness: 0.35 }) }));
+    tone: new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC }), sat: new HueSaturationEffect({ saturation: 0.3 }), bc: new BrightnessContrastEffect({ brightness: -0.1, contrast: 0.06 }), vig: new VignetteEffect({ offset: 0.35, darkness: 0.35 }) }));
   useEffect(() => { gl.toneMapping = THREE.NoToneMapping; gl.shadowMap.enabled = true; gl.shadowMap.type = THREE.PCFShadowMap; }, [gl]);
   const S: Setup[] = [
     { pos: V(6.55, 1.3, -11.7), look: V(7.45, 1.3, -15.0), fov: 46, dof: 12 },
     { pos: V(0.4, 2.0, 16), look: V(2.6, 3.4, -60), fov: 50, dof: 0 },
     { pos: V(4.6, 1.25, 0.2), look: V(1.8, 0.95, -5.6), fov: 42, dof: 9 },
     { pos: V(0.6, 0.55, 7.5), look: V(1.8, 0.85, -6), fov: 36, dof: 7 },
-    { pos: V(5.55, 1.0, -14.55), look: V(6.3, 0.95, -16.5), fov: 44, dof: 12 },
+    { pos: V(5.05, 1.05, -13.75), look: V(6.3, 0.8, -16.5), fov: 44, dof: 12 },
     { pos: V(7.7, 1.15, -6.1), look: V(7.7, 1.0, -10.3), fov: 52, dof: 6 },
     { pos: V(1.6, 1.0, -21.4), look: V(0.55, 0.95, -24), fov: 42, dof: 9 },
   ];
@@ -75,5 +75,5 @@ const Inner: React.FC = () => {
 const Cap: React.FC = () => { const f = useCurrentFrame(); return <CaptionText text={CAPS[Math.min(f, CAPS.length - 1)]} width={1080} height={1920} />; };
 export const LookLab: React.FC = () => {
   const [h] = useState(() => delayRender("lab")); useEffect(() => { const id = setTimeout(() => continueRender(h), 50); return () => clearTimeout(id); }, [h]);
-  return (<AbsoluteFill style={{ background: "#9cc4ea" }}><ThreeCanvas width={1080} height={1920} shadows gl={{ antialias: false, stencil: false }} camera={{ fov: 46, near: 0.05, far: 6000 }}><Inner /></ThreeCanvas><Cap /></AbsoluteFill>);
+  return (<AbsoluteFill style={{ background: "#9cc4ea" }}><ThreeCanvas width={1080} height={1920} shadows gl={{ antialias: false, stencil: false }} camera={{ fov: 46, near: 0.05, far: 6000 }}><Inner /></ThreeCanvas><AbsoluteFill style={{ background: "rgb(120,140,175)", mixBlendMode: "screen", opacity: 0.16 }} /><Cap /></AbsoluteFill>);
 };
