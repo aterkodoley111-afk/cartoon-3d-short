@@ -212,8 +212,18 @@ export class Lab {
     const c = document.createElement("canvas"); c.width = w; c.height = h; const g = c.getContext("2d")!; g.scale(w / 600, h / 1000); draw(new Pen(g));
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     const geo = new THREE.PlaneGeometry(600 * 0.00216, 1000 * 0.00216); geo.translate(0, (975 - 500) * 0.00216 * -1 * -1, 0);
-    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, toneMapped: true, color: new THREE.Color(0.92, 0.92, 0.9) }));
-    m.position.set(x, y, z); m.scale.setScalar(scale); m.renderOrder = 1; this.root.add(m); this.cards.push(m); return m;
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.5, side: THREE.DoubleSide, toneMapped: true, color: new THREE.Color(0.95, 0.93, 0.88) }));
+    m.position.set(x, y, z); m.scale.setScalar(scale); m.renderOrder = 1; this.root.add(m); this.cards.push(m);
+    // shadow twin: an invisible copy turned to FACE THE SUN, so the full silhouette falls on the ground beside the
+    // figure (a camera-facing card would only throw a thin sliver straight behind itself)
+    const sh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide }));
+    sh.castShadow = true; sh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: t, alphaTest: 0.5, side: THREE.DoubleSide });
+    sh.position.set(x, y, z); sh.scale.setScalar(scale); sh.lookAt(x + SUN_DIR.x, y, z + SUN_DIR.z); this.root.add(sh);
+    const ground = Math.abs(x) < 3.7 ? 0.06 : 0.0;
+    // contact shadow: a soft dark pool under the feet (the ink figure stands ON the ground)
+    const cs = new THREE.Mesh(new THREE.PlaneGeometry(0.75 * scale, 0.42 * scale), new THREE.MeshBasicMaterial({ map: CONTACT, transparent: true, depthWrite: false, opacity: 0.85 }));
+    cs.rotation.x = -Math.PI / 2; cs.position.set(x, Math.max(y, ground) + 0.012, z); cs.renderOrder = 0; this.root.add(cs);
+    return m;
   }
   frame(s: Setup, cam: THREE.PerspectiveCamera, t: number) {
     cam.position.copy(s.pos); cam.lookAt(s.look); cam.fov = s.fov; cam.near = 0.05; cam.far = 6000; cam.updateProjectionMatrix();
@@ -222,11 +232,13 @@ export class Lab {
     for (const m of this.cards) m.lookAt(cam.position.x, m.position.y, cam.position.z);
     WIND.time.value = t;
     // a high, warm afternoon sun from behind-left of the lens (soft shadows toward the camera-right)
-    const dir = V(-0.55, 0.62, 0.55).normalize();
+    const dir = SUN_DIR;
     this.sun.position.copy(s.look).addScaledVector(dir, 120); this.sun.target.position.copy(s.look);
     const sc = this.sun.shadow.camera, Rr = Math.min(60, 8 + s.pos.distanceTo(s.look) * 1.2); sc.left = -Rr; sc.right = Rr; sc.top = Rr; sc.bottom = -Rr; sc.near = 1; sc.far = 400; sc.updateProjectionMatrix();
   }
 }
+const SUN_DIR = new THREE.Vector3(-0.55, 0.62, 0.55).normalize();
+const CONTACT = (() => { const c = document.createElement("canvas"); c.width = 128; c.height = 64; const g = c.getContext("2d")!; const gr = g.createRadialGradient(64, 32, 2, 64, 32, 62); gr.addColorStop(0, "rgba(10,14,8,0.7)"); gr.addColorStop(0.45, "rgba(10,14,8,0.35)"); gr.addColorStop(1, "rgba(10,14,8,0)"); g.setTransform(1, 0, 0, 0.5, 0, 16); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
 export const envMap = () => skyEnv(false);
 export { seatWorld, handTargets, mergeVertices, bodyFront, bodySide };
 export type { FrontOpts, SideOpts, Outfit };
@@ -246,12 +258,15 @@ export const sedan = (paint: string, env: THREE.Texture) => {
   // side profile (x from rear -L/2 to front L/2): sill y, belt y, roof y; plan half-width
   const prof = (x: number) => {
     const u = (x + L / 2) / L; // 0 rear .. 1 front
-    const sill = 0.3 + 0.06 * Math.max(0, (u - 0.9) / 0.1) + 0.05 * Math.max(0, (0.08 - u) / 0.08);
-    const bonnet = 0.98 - 0.22 * Math.max(0, (u - 0.72) / 0.28) ** 1.6, boot = 1.02 - 0.12 * Math.max(0, (0.12 - u) / 0.12);
-    const belt = u > 0.7 ? bonnet : u < 0.2 ? boot : 0.98 + 0.04 * (0.7 - u);
+    const cl = (v: number) => Math.max(0, Math.min(1, v));
+    const nose = cl((u - 0.88) / 0.12), tail = cl((0.08 - u) / 0.08);
+    // a low, long bonnet that falls toward a rounded nose; the nose tucks in (plan + height) like a real sedan
+    const sill = 0.3 + 0.13 * nose ** 2 + 0.1 * tail ** 2;
+    const bonnet = 0.93 - 0.15 * cl((u - 0.68) / 0.32) ** 1.3 - 0.13 * nose ** 2.4, boot = 1.0 - 0.05 * cl((0.2 - u) / 0.2) - 0.1 * tail ** 2.2;
+    const belt = u > 0.68 ? bonnet : u < 0.2 ? boot : 0.93 + 0.07 * (0.68 - u) / 0.48;
     const roofU = u < 0.22 ? (u - 0.12) / 0.1 : u > 0.62 ? (0.78 - u) / 0.16 : 1;
-    const roof = belt + Math.max(0, Math.min(1, roofU)) ** 0.7 * (1.44 - belt);
-    const hw = W / 2 * (0.86 + 0.14 * Math.sin(Math.PI * Math.min(1, Math.max(0, (u - 0.01) / 0.98))) ** 0.35);
+    const roof = belt + Math.max(0, Math.min(1, roofU)) ** 0.7 * (1.42 - belt);
+    const hw = (W / 2) * (1 - 0.16 * nose ** 2.2 - 0.1 * tail ** 2) * (0.97 + 0.03 * Math.sin(Math.PI * cl(u)));
     return { sill, belt, roof, hw, cabin: roofU > 0.02 && u > 0.12 && u < 0.78 };
   };
   // lower body: sill to belt (bonnet, flanks, boot deck), a rounded superellipse section
@@ -315,10 +330,10 @@ export const sedan = (paint: string, env: THREE.Texture) => {
     for (const x of [0.55, -0.45]) { const h = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.025, 0.02), chromeM); h.position.set(x, 0.92, s * (prof(x).hw - 0.01)); root.add(h); }
     for (const x of [0.97, 0.0, -1.0]) { const sm = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.55, 0.01), blackM); sm.position.set(x, 0.66, s * (prof(x).hw * 0.995)); root.add(sm); }
   }
-  const grille = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.2, 1.05), blackM); grille.position.set(L / 2 - 0.08, 0.48, 0); root.add(grille);
+  const np = prof(L / 2 - 0.16), grille = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.13, np.hw * 1.0), blackM); grille.position.set(L / 2 - 0.13, np.sill + 0.12, 0); root.add(grille);
   const rp = prof(-L / 2 + 0.1), tb = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, rp.hw * 1.7), tail); tb.position.set(-L / 2 + 0.06, rp.belt - 0.05, 0); root.add(tb);
   const plateM = new THREE.MeshStandardMaterial({ color: "#f2f2ee", roughness: 0.5 });
-  for (const x of [L / 2 - 0.05, -L / 2 + 0.05]) { const pl = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.12, 0.5), plateM); pl.position.set(x, 0.42, 0); root.add(pl); }
+  for (const x of [L / 2 - 0.1, -L / 2 + 0.08]) { const pp = prof(x), pl = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.11, 0.48), plateM); pl.position.set(x, (pp.sill + pp.belt) / 2 - 0.02, 0); root.add(pl); }
   // interior: seats, dashboard with a glowing cluster, steering wheel
   const seatM = new THREE.MeshStandardMaterial({ color: "#2a2c32", roughness: 0.8 });
   for (const [x, z] of [[0.15, 0.4], [0.15, -0.4], [-0.75, 0.4], [-0.75, -0.4]] as [number, number][]) {

@@ -65,6 +65,12 @@ Full numbers and rules: `references/STUDY_13_REFS.md`. Reference media are never
   crossfades on time/place jumps (with a grade change), zoom-through transitions (into a pupil/object), iris vignettes.
 - **Camera**: moving in >= 90% of frames. Each 10 s: one slow push-in (+2..8%/s), one lateral/orbit move, at most one
   fast fly-over/whip. Low angles for power, top-down for maps/crowds.
+- **Cards in a PBR world**: every character card gets (1) an invisible shadow twin turned to FACE THE SUN with an
+  alpha-cut `customDepthMaterial`, so the full silhouette shadow falls beside the figure (a camera-facing card only
+  throws a thin sliver behind itself), and (2) a soft contact pool under the feet at the surface height (road 0.06).
+  See `Lab.card` in `templates/looklab/scene.ts`.
+- **Car proportions**: low long bonnet (0.93 -> ~0.65 m at the nose), the nose tucks in over the last 12% of length
+  in plan (-16% width) and height (sill rises 0.13 m), boot tucks 8%; grille/plates placed from `prof()`, not fixed y.
 - **World look** = `templates/looklab/` (PBR sun + sky, no ink on the world, 150k-blade grass, full oaks, cumulus,
   glossy lofted car with glass/interior/driver). Strong key + coloured practicals, god rays, haze, rain, DOF.
 - **Colour**: luma ~0.44, contrast 0.20, HSV saturation ~0.46; blue shadows vs warm orange/red subjects; one signature

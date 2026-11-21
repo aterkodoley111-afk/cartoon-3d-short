@@ -11,9 +11,9 @@ import { LensBlur } from "../tangiwai/lensblur";
 import { drawToon2, Look2, Pose2 } from "./chars2";
 import { CaptionText } from "../captions/Captions";
 
-export const LAB_FRAMES = 6;
+export const LAB_FRAMES = 7;
 const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
-const CAPS = ["He points", "Cars slow down", "except one.", "It never brakes.", "Grandpa just sips.", "Wait, what?"];
+const CAPS = ["He points", "Cars slow down", "except one.", "It never brakes.", "Grandpa just sips.", "Wait, what?", "He steps out."];
 
 const Inner: React.FC = () => {
   const f = useCurrentFrame();
@@ -41,6 +41,8 @@ const Inner: React.FC = () => {
       [{ hair: "bun", hairCol: "#c9c9cf", top: "dress", col: "#5f8fd0", col2: "#ffffff", pat: "dots", patCol: "#ffffff", glasses: "round" }, { expr: "cry", armL: { a: 0.3, e: -1.2 }, armR: { a: 0.3, e: -1.2 } }],
       [{ hair: "side", hairCol: "#6a4024", top: "shirt", col: "#f2f2ee", tie: "#a8642a", build: "slim" }, { expr: "scared", prop: "stopwatch", armR: { a: 0.35, e: 1.9 }, facing: -0.2 }],
     ];
+    // 6: the farmer walks out onto the asphalt (shadow check on a hard surface)
+    L.card(c2(FARM2, { expr: "determined", legs: "walk", phase: 0.15, facing: -0.5, lean: -0.05, armL: { a: 0.6, e: 0.4 }, armR: { a: -0.5, e: 0.4 } }, 4), 0.6, 0, -24, K);
     line.forEach(([o, po], i) => L.card(c2(o, po, 20 + i), 6.0 + i * 0.85, 0, -10.2 - 0.25 * (i % 2), K));
     return L;
   }, [scene]);
@@ -54,6 +56,7 @@ const Inner: React.FC = () => {
     { pos: V(0.6, 0.55, 7.5), look: V(1.8, 0.85, -6), fov: 36, dof: 7 },
     { pos: V(4.7, 1.15, -13.7), look: V(6.3, 0.9, -16.4), fov: 44, dof: 12 },
     { pos: V(7.7, 1.15, -6.1), look: V(7.7, 1.0, -10.3), fov: 52, dof: 6 },
+    { pos: V(2.2, 1.05, -19.6), look: V(0.4, 0.8, -24.2), fov: 44, dof: 8 },
   ];
   const s = S[Math.min(f, S.length - 1)];
   lab.frame(s, camera as THREE.PerspectiveCamera, f / 30 + 1.3);
